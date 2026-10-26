@@ -1,101 +1,116 @@
 ﻿-- ============================================================
 -- FILE    : V008__transactions_demo.sql
--- PURPOSE : Demonstrate transactions, savepoints, isolation
---           levels, and concurrency scenarios
+-- PURPOSE : Oracle transaction demos: COMMIT/ROLLBACK, SAVEPOINT,
+--           isolation levels, SELECT FOR UPDATE, deadlock demo.
 -- AUTHOR  : ISP Dev Team
 -- DATE    : 2026-10-26
 -- ============================================================
 
 -- ============================================================
--- 1. Basic Transaction: Safe payment recording
---    (mirrors what sp_record_payment does at DB level)
+-- 1. Basic COMMIT / ROLLBACK
+-- Oracle does NOT auto-commit DML. Every INSERT/UPDATE/DELETE
+-- starts an implicit transaction; you must COMMIT or ROLLBACK.
 -- ============================================================
-START TRANSACTION;
+-- Record a payment safely:
+INSERT INTO payment (invoice_id, amount, payment_method, payment_date)
+VALUES (1, 100, 'CASH', TRUNC(SYSDATE));
 
-  UPDATE invoice SET amount_paid = amount_paid + 500.00 WHERE invoice_id = 7;
-  INSERT INTO payment (invoice_id, amount, payment_method, payment_date)
-  VALUES (7, 500.00, 'UPI', CURDATE());
-  UPDATE invoice SET status = 'PARTIALLY_PAID' WHERE invoice_id = 7
-    AND amount_paid < total_amount;
+UPDATE invoice SET amount_paid = amount_paid + 100 WHERE invoice_id = 1;
 
-COMMIT;
--- If any step fails, the application calls ROLLBACK to undo all.
-
--- ============================================================
--- 2. SAVEPOINT: Create subscription with rollback to savepoint
---    If equipment assignment fails, roll back only that step,
---    not the whole subscription creation.
--- ============================================================
-START TRANSACTION;
-
-  -- Step 1: Create subscription
-  INSERT INTO subscription (customer_id, plan_id, area_id, start_date, status)
-  VALUES (5, 2, 4, CURDATE(), 'PENDING');
-  SET @sub_id = LAST_INSERT_ID();
-  SAVEPOINT after_subscription;
-
-  -- Step 2: Create installation record
-  INSERT INTO installation (subscription_id, status) VALUES (@sub_id, 'PENDING');
-  SAVEPOINT after_installation;
-
-  -- Step 3: Assign equipment (may fail if none available)
-  UPDATE equipment SET subscription_id = @sub_id, status = 'ASSIGNED'
-  WHERE equipment_id = 10 AND status = 'IN_STOCK';
-  -- If 0 rows affected, roll back to savepoint and continue without equipment:
-  -- ROLLBACK TO SAVEPOINT after_installation;
-
-COMMIT;
+COMMIT;   -- makes changes permanent and releases row locks
+-- ROLLBACK;  -- would undo both statements
 
 -- ============================================================
--- 3. ISOLATION LEVEL DEMO
---    Run in Session A, then Session B to see different behaviors
+-- 2. SAVEPOINT: Partial rollback within a transaction
+-- Use case: Create subscription (SAVEPOINT), then assign equipment.
+-- If equipment step fails, rollback to SAVEPOINT (keep subscription).
 -- ============================================================
--- SESSION A: Begin a transaction that reads invoice #1
-SET TRANSACTION ISOLATION LEVEL READ COMMITTED; -- default
-START TRANSACTION;
-  SELECT amount_paid, status FROM invoice WHERE invoice_id = 1;
-  -- Session B updates invoice #1 here (amount_paid changes)
-  SELECT amount_paid, status FROM invoice WHERE invoice_id = 1;
-  -- READ COMMITTED: sees Session B's committed change
-  -- REPEATABLE READ: would see original value both times
-COMMIT;
+-- Step 1: Insert subscription
+INSERT INTO subscription (customer_id, plan_id, area_id, start_date, status)
+VALUES (5, 2, 4, TRUNC(SYSDATE), 'PENDING');
 
--- For REPEATABLE READ (MySQL default InnoDB):
-SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;
-START TRANSACTION;
-  SELECT amount_paid FROM invoice WHERE invoice_id = 1;
-  -- Session B commits a payment here
-  SELECT amount_paid FROM invoice WHERE invoice_id = 1; -- same as first read
-COMMIT;
+SAVEPOINT after_subscription;   -- mark rollback point
 
--- ============================================================
--- 4. Lost Update Prevention using SELECT FOR UPDATE
---    Both sessions try to update the same invoice amount.
---    FOR UPDATE locks the row; Session B waits for Session A.
--- ============================================================
--- SESSION A:
-START TRANSACTION;
-  SELECT amount_paid FROM invoice WHERE invoice_id = 2 FOR UPDATE;
-  -- Process payment
-  UPDATE invoice SET amount_paid = amount_paid + 300 WHERE invoice_id = 2;
-COMMIT;
--- Session B would block on SELECT FOR UPDATE until A commits.
+-- Step 2: Insert installation
+INSERT INTO installation (subscription_id, status)
+VALUES (21, 'PENDING');         -- adjust ID as needed
+
+SAVEPOINT after_installation;
+
+-- Step 3: Assign equipment (might fail if none available)
+-- UPDATE equipment SET subscription_id = 21, status = 'ASSIGNED'
+-- WHERE equipment_id = 5 AND status = 'IN_STOCK';
+-- If 0 rows updated: ROLLBACK TO SAVEPOINT after_installation;
+
+COMMIT;  -- commits all steps that succeeded
 
 -- ============================================================
--- 5. DEADLOCK DEMO (run concurrently in two sessions)
+-- 3. ISOLATION LEVELS
+-- Oracle supports only READ COMMITTED (default) and SERIALIZABLE.
+-- READ ONLY is a transaction-level mode, not an isolation level.
+--
+-- READ COMMITTED (default):
+--   Each statement sees data committed BEFORE the statement began.
+--   Non-repeatable reads and phantom reads are possible.
+--
+-- SERIALIZABLE:
+--   The whole transaction sees data as of its start (snapshot).
+--   ORA-08177 raised if a serializable tx tries to modify data
+--   changed by another committed tx after this tx started.
+--
+-- READ ONLY:
+--   Like SERIALIZABLE but disallows any DML in this transaction.
 -- ============================================================
--- Session A: locks invoice 1 then tries invoice 2
--- START TRANSACTION;
--- UPDATE invoice SET status='OVERDUE' WHERE invoice_id = 1;
--- <wait>
--- UPDATE invoice SET status='OVERDUE' WHERE invoice_id = 2;
--- COMMIT;
 
--- Session B: locks invoice 2 then tries invoice 1
--- START TRANSACTION;
--- UPDATE invoice SET status='PAID' WHERE invoice_id = 2;
--- <wait>
--- UPDATE invoice SET status='PAID' WHERE invoice_id = 1;
--- COMMIT;
--- MySQL detects the deadlock, rolls back one session automatically.
--- In Java: catch SQLException, check SQLState = '40001' for deadlock.
+-- Set isolation level for current transaction:
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED;   -- default
+-- SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+-- SET TRANSACTION READ ONLY;   -- read-only snapshot
+
+SELECT amount_paid FROM invoice WHERE invoice_id = 1;
+
+-- Session B commits a change here in a real concurrency test.
+-- With READ COMMITTED: this query would see B's committed change.
+-- With SERIALIZABLE : this query sees original snapshot value.
+
+ROLLBACK;  -- ends the transaction
+
+-- ============================================================
+-- 4. SELECT FOR UPDATE: Row-level lock to prevent lost updates
+-- Both sessions try to update invoice #2.
+-- Session A locks first; Session B WAITS (or NOWAIT raises error).
+-- ============================================================
+-- Session A:
+SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+SELECT amount_paid FROM invoice WHERE invoice_id = 2 FOR UPDATE;
+-- Row is now locked; Session B cannot update it
+UPDATE invoice SET amount_paid = amount_paid + 300 WHERE invoice_id = 2;
+COMMIT;  -- lock released
+
+-- Session B (after Session A commits):
+SELECT amount_paid FROM invoice WHERE invoice_id = 2 FOR UPDATE NOWAIT;
+-- NOWAIT raises ORA-00054 if row is locked, instead of blocking.
+-- In Java: catch SQLException where sqlState.startsWith("61") or errorCode == 54
+
+-- FOR UPDATE SKIP LOCKED: process only unlocked rows (useful in batch jobs)
+SELECT invoice_id, total_amount - amount_paid AS outstanding
+FROM   invoice
+WHERE  status IN ('ISSUED','OVERDUE')
+FOR UPDATE SKIP LOCKED;
+
+-- ============================================================
+-- 5. DEADLOCK DEMONSTRATION (run in two separate SQL*Plus sessions)
+-- Oracle automatically detects deadlocks and rolls back one victim.
+-- In Java: catch SQLException where getErrorCode() == 60 (ORA-00060)
+-- ============================================================
+-- SESSION A                    | SESSION B
+-- UPDATE invoice               | UPDATE invoice
+--   SET status='OVERDUE'       |   SET status='PAID'
+--   WHERE invoice_id=1;        |   WHERE invoice_id=2;
+--                              |
+-- UPDATE invoice               | UPDATE invoice
+--   SET status='OVERDUE'       |   SET status='PAID'
+--   WHERE invoice_id=2; <WAIT> |   WHERE invoice_id=1; <WAIT>
+--                              |
+-- Oracle detects cycle, rolls back one session with ORA-00060.
+-- Java code must retry the rolled-back transaction.

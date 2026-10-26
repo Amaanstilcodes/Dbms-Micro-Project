@@ -1,25 +1,30 @@
 ﻿# ============================================================
 # FILE    : docker-compose.yml
-# PURPOSE : Spin up MySQL 8 for local development
+# PURPOSE : Oracle XE 21c for local development
 # USAGE   : docker-compose up -d
+#           Wait ~2 minutes for Oracle to fully start.
+# IMAGE   : gvenzl/oracle-xe (community Oracle XE image)
 # ============================================================
 version: "3.8"
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: isp_mysql
+  oracle-xe:
+    image: gvenzl/oracle-xe:21-slim
+    container_name: isp_oracle_xe
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root_password
-      MYSQL_DATABASE: isp_db
-      MYSQL_USER: isp_app
-      MYSQL_PASSWORD: changeme_strong_password_here
+      ORACLE_PASSWORD: oracle            # SYS and SYSTEM password
+      APP_USER: isp_app                  # auto-creates this user in XEPDB1
+      APP_USER_PASSWORD: "ISP_Secure#2025"
     ports:
-      - "3306:3306"
+      - "1521:1521"
     volumes:
-      - isp_mysql_data:/var/lib/mysql
-      - ./database/schema:/docker-entrypoint-initdb.d   # auto-runs DDL on first start
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+      - isp_oracle_data:/opt/oracle/oradata
+      - ./database:/docker-entrypoint-initdb.d   # .sql files run at first start
 
 volumes:
-  isp_mysql_data:
+  isp_oracle_data:
+
+# After startup, connect with:
+#   sqlplus isp_app/"ISP_Secure#2025"@//localhost:1521/XEPDB1
+# Or from Java:
+#   jdbc:oracle:thin:@//localhost:1521/XEPDB1

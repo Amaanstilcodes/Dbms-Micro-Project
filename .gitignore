@@ -1,8 +1,4 @@
-﻿# ============================================================
-# .gitignore for ISP Management System
-# ============================================================
-
-# Maven
+﻿# Maven
 target/
 *.class
 
@@ -14,13 +10,16 @@ target/
 *.project
 .settings/
 
-# Environment and secrets - NEVER commit these
+# Oracle credentials - NEVER commit
 .env
 src/main/resources/db.properties
 
 # Logs
 logs/
 *.log
+
+# Oracle wallet (if used)
+wallet/
 
 # OS
 .DS_Store

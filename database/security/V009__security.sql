@@ -1,43 +1,53 @@
 ﻿-- ============================================================
 -- FILE    : V009__security.sql
--- PURPOSE : MySQL roles, least-privilege app user, GRANT/REVOKE
+-- PURPOSE : Oracle roles, least-privilege grants, password profile
 -- AUTHOR  : ISP Dev Team
 -- DATE    : 2026-10-26
+-- RUN AS  : SYSTEM or SYS AS SYSDBA in XEPDB1
 -- ============================================================
 
 -- ============================================================
--- 1. Create a least-privilege application user
---    (the Java app connects as isp_app, NOT as root)
+-- 1. Create a read-only reporting role
 -- ============================================================
-CREATE USER IF NOT EXISTS 'isp_app'@'localhost'
-    IDENTIFIED BY 'changeme_strong_password_here';
-
--- Grant only what the app needs (no DROP, ALTER, GRANT)
-GRANT SELECT, INSERT, UPDATE, DELETE ON isp_db.* TO 'isp_app'@'localhost';
-GRANT EXECUTE ON isp_db.* TO 'isp_app'@'localhost';  -- call stored procedures
-FLUSH PRIVILEGES;
-
--- ============================================================
--- 2. Read-only reporting user (for analytics / dashboards)
--- ============================================================
-CREATE USER IF NOT EXISTS 'isp_readonly'@'localhost'
-    IDENTIFIED BY 'readonly_password_here';
-GRANT SELECT ON isp_db.* TO 'isp_readonly'@'localhost';
-FLUSH PRIVILEGES;
+CREATE ROLE isp_readonly_role;
+GRANT SELECT ON isp_app.customer         TO isp_readonly_role;
+GRANT SELECT ON isp_app.subscription     TO isp_readonly_role;
+GRANT SELECT ON isp_app.invoice          TO isp_readonly_role;
+GRANT SELECT ON isp_app.payment          TO isp_readonly_role;
+GRANT SELECT ON isp_app.plan             TO isp_readonly_role;
+GRANT SELECT ON isp_app.v_monthly_revenue TO isp_readonly_role;
 
 -- ============================================================
--- 3. Revoke example: remove INSERT from readonly user
+-- 2. Read-only reporting user
 -- ============================================================
--- REVOKE INSERT ON isp_db.* FROM 'isp_readonly'@'localhost';
+CREATE USER isp_readonly IDENTIFIED BY "ReadOnly#2025"
+    DEFAULT TABLESPACE users TEMPORARY TABLESPACE temp QUOTA 0 ON users;
+GRANT CREATE SESSION TO isp_readonly;
+GRANT isp_readonly_role TO isp_readonly;
 
 -- ============================================================
--- 4. Show grants for the app user
+-- 3. Password profile (optional but good practice)
 -- ============================================================
--- SHOW GRANTS FOR 'isp_app'@'localhost';
+CREATE PROFILE isp_app_profile LIMIT
+    FAILED_LOGIN_ATTEMPTS   5
+    PASSWORD_LOCK_TIME      1/24        -- lock for 1 hour after 5 failures
+    PASSWORD_LIFE_TIME      90          -- expire every 90 days
+    PASSWORD_REUSE_TIME     180         -- cannot reuse within 180 days
+    PASSWORD_REUSE_MAX      5           -- cannot reuse last 5 passwords
+    PASSWORD_GRACE_TIME     7           -- 7-day grace period before expiry;
+
+ALTER USER isp_app PROFILE isp_app_profile;
 
 -- ============================================================
--- NOTES for db.properties:
---   db.url=jdbc:mysql://localhost:3306/isp_db
---   db.username=isp_app
---   db.password=changeme_strong_password_here
+-- 4. REVOKE example
 -- ============================================================
+-- REVOKE SELECT ON isp_app.audit_log FROM isp_readonly_role;
+
+-- ============================================================
+-- 5. Show grants
+-- ============================================================
+-- SELECT * FROM dba_sys_privs WHERE grantee = 'ISP_APP';
+-- SELECT * FROM dba_tab_privs WHERE grantee = 'ISP_READONLY_ROLE';
+
+COMMIT;
+PROMPT Security configuration applied.

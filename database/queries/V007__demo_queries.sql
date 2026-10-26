@@ -1,213 +1,290 @@
 ﻿-- ============================================================
 -- FILE    : V007__demo_queries.sql
--- PURPOSE : Demonstration queries covering all required SQL
---           concepts: joins, subqueries, window functions,
---           CTEs, set ops, CASE, aggregation, date functions
+-- PURPOSE : Oracle SQL demo queries covering all required concepts:
+--           joins, subqueries, analytic functions, CTEs (WITH),
+--           ROLLUP/CUBE, set ops (UNION/INTERSECT/MINUS),
+--           CASE/DECODE/NVL/COALESCE, date functions, FETCH FIRST
 -- AUTHOR  : ISP Dev Team
 -- DATE    : 2026-10-26
 -- ============================================================
 
 -- ============================================================
--- 1. INNER JOIN: Subscriptions with customer and plan details
+-- 1. INNER JOIN: Subscriptions with customer, plan, area details
 -- ============================================================
 SELECT s.subscription_id,
-       CONCAT(c.first_name,' ',c.last_name) AS customer,
+       c.first_name || ' ' || c.last_name AS customer_name,
        p.plan_name, p.speed_mbps, p.price,
+       sa.area_name, sa.city,
        s.start_date, s.status
-FROM subscription s
-INNER JOIN customer c ON s.customer_id = c.customer_id
-INNER JOIN plan p     ON s.plan_id     = p.plan_id;
+FROM   subscription s
+JOIN   customer     c  ON s.customer_id = c.customer_id
+JOIN   plan         p  ON s.plan_id     = p.plan_id
+JOIN   service_area sa ON s.area_id     = sa.area_id
+ORDER  BY s.subscription_id;
 
 -- ============================================================
--- 2. LEFT JOIN: All customers with their subscription count
+-- 2. LEFT JOIN: All customers with subscription count
 --    (includes customers with NO subscription)
 -- ============================================================
 SELECT c.customer_id,
-       CONCAT(c.first_name,' ',c.last_name) AS customer,
-       COUNT(s.subscription_id) AS sub_count
-FROM customer c
-LEFT JOIN subscription s ON c.customer_id = s.customer_id
-GROUP BY c.customer_id, c.first_name, c.last_name
-ORDER BY sub_count DESC;
+       c.first_name || ' ' || c.last_name AS customer_name,
+       COUNT(s.subscription_id)            AS sub_count
+FROM   customer c
+LEFT   JOIN subscription s ON c.customer_id = s.customer_id
+GROUP  BY c.customer_id, c.first_name, c.last_name
+ORDER  BY sub_count DESC;
 
 -- ============================================================
--- 3. SELF JOIN: Customers in the same service area
---    (pairs of different customers sharing an area)
+-- 3. RIGHT JOIN: All plans and how many subscriptions use them
 -- ============================================================
-SELECT c1.customer_id AS cust1_id,
-       CONCAT(c1.first_name,' ',c1.last_name) AS cust1_name,
-       c2.customer_id AS cust2_id,
-       CONCAT(c2.first_name,' ',c2.last_name) AS cust2_name,
-       sa.area_name
-FROM customer c1
-INNER JOIN customer c2   ON c1.area_id = c2.area_id AND c1.customer_id < c2.customer_id
-INNER JOIN service_area sa ON c1.area_id = sa.area_id
-ORDER BY sa.area_name;
+SELECT p.plan_name, p.price,
+       COUNT(s.subscription_id) AS subscriber_count
+FROM   subscription s
+RIGHT  JOIN plan p ON s.plan_id = p.plan_id
+GROUP  BY p.plan_id, p.plan_name, p.price
+ORDER  BY subscriber_count DESC;
 
 -- ============================================================
--- 4. NON-CORRELATED SUBQUERY: Subscriptions on plans cheaper
---    than the average plan price
--- ============================================================
-SELECT s.subscription_id,
-       CONCAT(c.first_name,' ',c.last_name) AS customer,
-       p.plan_name, p.price
-FROM subscription s
-INNER JOIN customer c ON s.customer_id = c.customer_id
-INNER JOIN plan p     ON s.plan_id     = p.plan_id
-WHERE p.price < (SELECT AVG(price) FROM plan WHERE is_active = 1);
-
--- ============================================================
--- 5. CORRELATED SUBQUERY: Customers whose last invoice
---    is overdue (exists overdue invoice for that customer)
+-- 4. FULL OUTER JOIN: All customers and all subscriptions
+--    (shows unmatched rows on both sides)
 -- ============================================================
 SELECT c.customer_id,
-       CONCAT(c.first_name,' ',c.last_name) AS customer,
+       c.first_name || ' ' || c.last_name AS customer_name,
+       s.subscription_id, s.status
+FROM   customer c
+FULL OUTER JOIN subscription s ON c.customer_id = s.customer_id
+WHERE  c.customer_id IS NULL OR s.subscription_id IS NULL;
+
+-- ============================================================
+-- 5. SELF JOIN: Customers in the same service area
+-- ============================================================
+SELECT c1.customer_id  AS cust1_id,
+       c1.first_name || ' ' || c1.last_name AS cust1_name,
+       c2.customer_id  AS cust2_id,
+       c2.first_name || ' ' || c2.last_name AS cust2_name,
+       sa.area_name
+FROM   customer     c1
+JOIN   customer     c2  ON c1.area_id = c2.area_id
+                       AND c1.customer_id < c2.customer_id
+JOIN   service_area sa  ON c1.area_id = sa.area_id
+ORDER  BY sa.area_name;
+
+-- ============================================================
+-- 6. NON-CORRELATED SUBQUERY: Plans cheaper than average price
+-- ============================================================
+SELECT s.subscription_id,
+       c.first_name || ' ' || c.last_name AS customer_name,
+       p.plan_name, p.price
+FROM   subscription s
+JOIN   customer c ON s.customer_id = c.customer_id
+JOIN   plan     p ON s.plan_id     = p.plan_id
+WHERE  p.price < (SELECT AVG(price) FROM plan WHERE is_active = 'Y');
+
+-- ============================================================
+-- 7. CORRELATED SUBQUERY: Customers with at least one overdue invoice
+-- ============================================================
+SELECT c.customer_id,
+       c.first_name || ' ' || c.last_name AS customer_name,
        c.email
-FROM customer c
-WHERE EXISTS (
+FROM   customer c
+WHERE  EXISTS (
     SELECT 1 FROM invoice i
-    INNER JOIN subscription s ON i.subscription_id = s.subscription_id
-    WHERE s.customer_id = c.customer_id
-      AND i.status IN ('OVERDUE','ISSUED')
-      AND i.due_date < CURDATE()
+    JOIN   subscription s ON i.subscription_id = s.subscription_id
+    WHERE  s.customer_id = c.customer_id
+      AND  i.status IN ('OVERDUE','ISSUED')
+      AND  i.due_date < TRUNC(SYSDATE)
 );
 
 -- ============================================================
--- 6. AGGREGATION with GROUP BY / HAVING:
---    Areas with more than 2 active subscriptions
+-- 8. GROUP BY / HAVING: Areas with > 2 active subscriptions
 -- ============================================================
 SELECT sa.area_name, sa.city,
-       COUNT(s.subscription_id) AS active_subs,
-       SUM(p.price)             AS monthly_revenue
-FROM service_area sa
-INNER JOIN subscription s ON sa.area_id = s.area_id AND s.status = 'ACTIVE'
-INNER JOIN plan p         ON s.plan_id  = p.plan_id
-GROUP BY sa.area_id, sa.area_name, sa.city
+       COUNT(s.subscription_id)  AS active_subs,
+       SUM(p.price)              AS monthly_revenue
+FROM   service_area sa
+JOIN   subscription s ON sa.area_id = s.area_id AND s.status = 'ACTIVE'
+JOIN   plan         p ON s.plan_id  = p.plan_id
+GROUP  BY sa.area_id, sa.area_name, sa.city
 HAVING COUNT(s.subscription_id) > 2
-ORDER BY monthly_revenue DESC;
+ORDER  BY monthly_revenue DESC;
 
 -- ============================================================
--- 7. WINDOW FUNCTIONS: Rank customers by outstanding balance
---    using RANK(); running total of payments using SUM OVER
+-- 9. ROLLUP: Revenue by area, city and grand total
 -- ============================================================
--- 7a. RANK by outstanding balance
+SELECT NVL(sa.city,'** GRAND TOTAL **')      AS city,
+       NVL(p.plan_type,'All Plans')           AS plan_type,
+       SUM(pay.amount)                        AS revenue
+FROM   payment pay
+JOIN   invoice     i  ON pay.invoice_id    = i.invoice_id
+JOIN   subscription s ON i.subscription_id = s.subscription_id
+JOIN   plan         p ON s.plan_id         = p.plan_id
+JOIN   service_area sa ON s.area_id        = sa.area_id
+GROUP  BY ROLLUP(sa.city, p.plan_type)
+ORDER  BY sa.city, p.plan_type;
+
+-- ============================================================
+-- 10. CUBE: Revenue matrix by city and plan type
+-- ============================================================
+SELECT NVL(sa.city,'All Cities')    AS city,
+       NVL(p.plan_type,'All Plans') AS plan_type,
+       SUM(pay.amount)              AS revenue
+FROM   payment pay
+JOIN   invoice     i  ON pay.invoice_id    = i.invoice_id
+JOIN   subscription s ON i.subscription_id = s.subscription_id
+JOIN   plan         p ON s.plan_id         = p.plan_id
+JOIN   service_area sa ON s.area_id        = sa.area_id
+GROUP  BY CUBE(sa.city, p.plan_type)
+ORDER  BY sa.city, p.plan_type;
+
+-- ============================================================
+-- 11. ANALYTIC FUNCTIONS: RANK, DENSE_RANK, ROW_NUMBER, running total
+-- ============================================================
+-- 11a: Rank customers by outstanding balance
 SELECT customer_id, customer_name, outstanding_balance,
-       RANK() OVER (ORDER BY outstanding_balance DESC) AS balance_rank,
+       RANK()       OVER (ORDER BY outstanding_balance DESC) AS bal_rank,
+       DENSE_RANK() OVER (ORDER BY outstanding_balance DESC) AS dense_rank,
        ROW_NUMBER() OVER (ORDER BY outstanding_balance DESC) AS row_num
-FROM v_customer_balance
-WHERE outstanding_balance > 0;
+FROM   v_customer_balance
+WHERE  outstanding_balance > 0;
 
--- 7b. Running total of daily payments per month
-SELECT pay.payment_id,
-       pay.payment_date,
-       pay.amount,
-       SUM(pay.amount) OVER (
-           PARTITION BY DATE_FORMAT(pay.payment_date,'%Y-%m')
-           ORDER BY pay.payment_date, pay.payment_id
+-- 11b: Running total of payments and LAG/LEAD
+SELECT payment_id,
+       TO_CHAR(payment_date,'YYYY-MM-DD') AS pay_date,
+       amount,
+       SUM(amount) OVER (
+           PARTITION BY TO_CHAR(payment_date,'YYYY-MM')
+           ORDER BY payment_date, payment_id
            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-       ) AS running_monthly_total,
-       LAG(pay.amount)  OVER (ORDER BY pay.payment_date) AS prev_payment,
-       LEAD(pay.amount) OVER (ORDER BY pay.payment_date) AS next_payment
-FROM payment pay
-ORDER BY pay.payment_date;
+       )                                  AS running_monthly_total,
+       LAG(amount)  OVER (ORDER BY payment_date) AS prev_payment,
+       LEAD(amount) OVER (ORDER BY payment_date) AS next_payment
+FROM   payment
+ORDER  BY payment_date;
 
 -- ============================================================
--- 8. CTE: Monthly revenue with month-over-month growth
+-- 12. CTE (WITH clause): Month-over-month revenue growth
 -- ============================================================
 WITH monthly AS (
-    SELECT DATE_FORMAT(payment_date,'%Y-%m') AS yr_mo,
-           SUM(amount) AS revenue
-    FROM payment
-    GROUP BY DATE_FORMAT(payment_date,'%Y-%m')
+    SELECT TO_CHAR(payment_date,'YYYY-MM') AS yr_mo,
+           SUM(amount)                      AS revenue
+    FROM   payment
+    GROUP  BY TO_CHAR(payment_date,'YYYY-MM')
 ),
 growth AS (
     SELECT yr_mo, revenue,
            LAG(revenue) OVER (ORDER BY yr_mo) AS prev_revenue
-    FROM monthly
+    FROM   monthly
 )
 SELECT yr_mo,
-       revenue,
-       prev_revenue,
-       CASE
-           WHEN prev_revenue IS NULL THEN NULL
-           ELSE ROUND((revenue - prev_revenue) / prev_revenue * 100, 2)
-       END AS growth_pct
-FROM growth
-ORDER BY yr_mo;
+       ROUND(revenue, 2)                                           AS revenue,
+       ROUND(prev_revenue, 2)                                      AS prev_revenue,
+       CASE WHEN prev_revenue IS NULL THEN NULL
+            ELSE ROUND((revenue - prev_revenue) / prev_revenue * 100, 2)
+       END                                                         AS growth_pct
+FROM   growth
+ORDER  BY yr_mo;
 
 -- ============================================================
--- 9. RECURSIVE CTE: (if you model manager-subordinate or
---    area hierarchy; here: generate a date series for usage)
+-- 13. RECURSIVE CTE: Generate date series for usage report
 -- ============================================================
-WITH RECURSIVE date_series AS (
-    SELECT DATE_SUB(CURDATE(), INTERVAL 30 DAY) AS dt
+WITH date_series (dt, lvl) AS (
+    SELECT TRUNC(SYSDATE) - 30  AS dt, 1 AS lvl FROM DUAL
     UNION ALL
-    SELECT DATE_ADD(dt, INTERVAL 1 DAY)
-    FROM date_series WHERE dt < CURDATE()
+    SELECT dt + 1, lvl + 1
+    FROM   date_series
+    WHERE  dt + 1 <= TRUNC(SYSDATE)
 )
 SELECT d.dt,
-       COALESCE(SUM(ur.data_used_mb), 0) AS total_mb_used
-FROM date_series d
-LEFT JOIN usage_record ur ON ur.usage_date = d.dt
-GROUP BY d.dt
-ORDER BY d.dt;
+       NVL(SUM(ur.data_used_mb), 0) AS total_mb_used
+FROM   date_series d
+LEFT   JOIN usage_record ur ON ur.usage_date = d.dt
+GROUP  BY d.dt
+ORDER  BY d.dt;
 
 -- ============================================================
--- 10. SET OPERATIONS: UNION
---     All contacts (customers + technicians) in an area
+-- 14. SET OPERATIONS: UNION / INTERSECT / MINUS
 -- ============================================================
-SELECT 'CUSTOMER'   AS contact_type,
-       customer_id  AS id,
-       CONCAT(first_name,' ',last_name) AS full_name,
-       email, phone, area_id
-FROM customer WHERE area_id = 1
+-- UNION: All contacts in area 1 (customers + technicians)
+SELECT 'CUSTOMER'   AS contact_type, customer_id AS id,
+       first_name || ' ' || last_name AS full_name, email, phone
+FROM   customer WHERE area_id = 1
 UNION ALL
-SELECT 'TECHNICIAN' AS contact_type,
-       technician_id, CONCAT(first_name,' ',last_name),
-       email, phone, area_id
-FROM technician WHERE area_id = 1
-ORDER BY contact_type, full_name;
+SELECT 'TECHNICIAN' AS contact_type, technician_id,
+       first_name || ' ' || last_name, email, phone
+FROM   technician WHERE area_id = 1
+ORDER  BY contact_type, full_name;
+
+-- INTERSECT: customers who have BOTH active subscription AND open ticket
+SELECT customer_id FROM subscription WHERE status = 'ACTIVE'
+INTERSECT
+SELECT customer_id FROM support_ticket WHERE status = 'OPEN';
+
+-- MINUS: customers with subscription but NO support ticket
+SELECT customer_id FROM subscription
+MINUS
+SELECT customer_id FROM support_ticket;
 
 -- ============================================================
--- 11. CASE expression: Payment method distribution report
+-- 15. CASE / DECODE / NVL / COALESCE
 -- ============================================================
-SELECT
-    COUNT(*) AS total_payments,
-    SUM(amount) AS total_amount,
-    SUM(CASE WHEN payment_method = 'UPI'           THEN amount ELSE 0 END) AS upi_amount,
-    SUM(CASE WHEN payment_method = 'BANK_TRANSFER' THEN amount ELSE 0 END) AS bank_amount,
-    SUM(CASE WHEN payment_method = 'CARD'          THEN amount ELSE 0 END) AS card_amount,
-    SUM(CASE WHEN payment_method = 'CASH'          THEN amount ELSE 0 END) AS cash_amount,
-    CONCAT(ROUND(SUM(CASE WHEN payment_method='UPI' THEN 1 ELSE 0 END)*100.0/COUNT(*),1),'%') AS upi_pct
-FROM payment;
+SELECT payment_id,
+       amount,
+       payment_method,
+       CASE payment_method
+           WHEN 'UPI'           THEN 'Digital Wallet'
+           WHEN 'BANK_TRANSFER' THEN 'Net Banking'
+           WHEN 'CARD'          THEN 'Debit/Credit Card'
+           WHEN 'CASH'          THEN 'Cash Counter'
+           ELSE                      'Other'
+       END                                   AS method_display,
+       DECODE(payment_method,'CASH','Y','N') AS is_cash,
+       NVL(transaction_ref,'N/A')            AS ref_display,
+       COALESCE(transaction_ref,'CASH-'||payment_id) AS ref_or_default
+FROM   payment
+ORDER  BY payment_date;
 
 -- ============================================================
--- 12. DATE FUNCTIONS: Subscriptions expiring within 30 days
+-- 16. DATE FUNCTIONS: TRUNC, ADD_MONTHS, MONTHS_BETWEEN, TO_CHAR
 -- ============================================================
-SELECT s.subscription_id,
-       CONCAT(c.first_name,' ',c.last_name) AS customer,
-       s.end_date,
-       DATEDIFF(s.end_date, CURDATE()) AS days_remaining,
-       p.plan_name
-FROM subscription s
-INNER JOIN customer c ON s.customer_id = c.customer_id
-INNER JOIN plan p     ON s.plan_id     = p.plan_id
-WHERE s.end_date BETWEEN CURDATE() AND DATE_ADD(CURDATE(), INTERVAL 30 DAY)
-  AND s.status = 'ACTIVE'
-ORDER BY days_remaining;
+SELECT c.first_name || ' ' || c.last_name AS customer_name,
+       s.start_date,
+       TRUNC(s.start_date,'MM')             AS billing_month_start,
+       ADD_MONTHS(s.start_date, 12)         AS one_year_anniversary,
+       ROUND(MONTHS_BETWEEN(SYSDATE, s.start_date), 1) AS months_active,
+       TO_CHAR(s.start_date,'Day, DD-MON-YYYY') AS formatted_start,
+       TO_CHAR(SYSDATE,'YYYY-MM-DD HH24:MI:SS') AS current_ts
+FROM   subscription s
+JOIN   customer c ON s.customer_id = c.customer_id
+WHERE  s.status = 'ACTIVE'
+ORDER  BY months_active DESC;
 
 -- ============================================================
--- 13. Ticket resolution time report (SLA analysis)
+-- 17. TOP-N with FETCH FIRST (Oracle 12c+, replaces ROWNUM trick)
 -- ============================================================
-SELECT
-    category,
-    priority,
-    COUNT(*) AS total_tickets,
-    COUNT(CASE WHEN status = 'RESOLVED' OR status = 'CLOSED' THEN 1 END) AS resolved,
-    AVG(CASE WHEN resolved_at IS NOT NULL
-             THEN TIMESTAMPDIFF(HOUR, created_at, resolved_at) END) AS avg_resolution_hours,
-    MAX(CASE WHEN resolved_at IS NOT NULL
-             THEN TIMESTAMPDIFF(HOUR, created_at, resolved_at) END) AS max_resolution_hours
-FROM support_ticket
-GROUP BY category, priority
-ORDER BY priority, category;
+-- Top 5 customers by outstanding balance
+SELECT customer_name, outstanding_balance
+FROM   v_customer_balance
+WHERE  outstanding_balance > 0
+ORDER  BY outstanding_balance DESC
+FETCH  FIRST 5 ROWS ONLY;
+
+-- 18. OFFSET / FETCH for pagination (page 2, 10 rows per page)
+SELECT customer_id, first_name, last_name, email
+FROM   customer
+ORDER  BY customer_id
+OFFSET 10 ROWS FETCH NEXT 10 ROWS ONLY;
+
+-- 19. Ticket SLA analysis: resolution time by priority
+SELECT category, priority,
+       COUNT(*)                                           AS total_tickets,
+       SUM(CASE WHEN status IN ('RESOLVED','CLOSED') THEN 1 ELSE 0 END) AS resolved,
+       ROUND(AVG(
+           CASE WHEN resolved_at IS NOT NULL
+                THEN (resolved_at - created_at) * 24  -- hours
+           END), 1)                                       AS avg_hours,
+       MAX(CASE WHEN resolved_at IS NOT NULL
+                THEN (resolved_at - created_at) * 24
+           END)                                           AS max_hours
+FROM   support_ticket
+GROUP  BY category, priority
+ORDER  BY priority, category;
