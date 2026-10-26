@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<!--
+    Payments.fxml
+    Controller: com.isp.controller.PaymentsController
+-->
+<HBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.isp.controller.PaymentsController"
+      prefWidth="1100" prefHeight="680"
+      styleClass="root-pane">
+
+    <VBox styleClass="sidebar" prefWidth="220" minWidth="220">
+        <Label text="📡 ISP System" styleClass="sidebar-logo"/>
+        <Label text="Management Portal" styleClass="sidebar-subtitle"/>
+        <Separator style="-fx-background-color:#2d3f6b;"/>
+        <Label text="BILLING" styleClass="sidebar-section-label"/>
+        <Button text="🏠  Dashboard" styleClass="nav-button" maxWidth="220" onAction="#goBack"/>
+        <Button text="💳  Payments"  styleClass="nav-button nav-button-active" maxWidth="220"/>
+        <Region VBox.vgrow="ALWAYS"/>
+        <Separator style="-fx-background-color:#2d3f6b;"/>
+        <Button text="← Back to Dashboard" styleClass="nav-logout" maxWidth="220" onAction="#goBack"/>
+    </VBox>
+
+    <VBox HBox.hgrow="ALWAYS" styleClass="content-area" spacing="16">
+
+        <VBox spacing="2">
+            <Label text="Payments" styleClass="page-title"/>
+            <Label text="Transaction history for all collected payments." styleClass="page-subtitle"/>
+        </VBox>
+
+        <!-- Date + method filter bar -->
+        <HBox styleClass="toolbar-bar" spacing="8" alignment="CENTER_LEFT">
+            <Label text="From:"/>
+            <DatePicker fx:id="fromDatePicker"/>
+            <Label text="To:"/>
+            <DatePicker fx:id="toDatePicker"/>
+            <Label text="Method:"/>
+            <ComboBox fx:id="methodFilter" prefWidth="130"/>
+            <Button fx:id="filterButton" text="🔍 Filter" styleClass="btn-secondary" onAction="#handleFilter"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Label fx:id="totalLabel" text="Total collected: ₹ 0.00"
+                   style="-fx-font-weight:bold; -fx-font-size:14px; -fx-text-fill:#16a34a;"/>
+        </HBox>
+
+        <TableView fx:id="paymentTable" VBox.vgrow="ALWAYS" styleClass="table-view">
+            <columns>
+                <TableColumn fx:id="colId"        text="ID"           prefWidth="55"/>
+                <TableColumn fx:id="colInvoiceId" text="Invoice #"    prefWidth="85"/>
+                <TableColumn fx:id="colCustomer"  text="Customer"     prefWidth="180"/>
+                <TableColumn fx:id="colAmount"    text="Amount (₹)"   prefWidth="110"/>
+                <TableColumn fx:id="colMethod"    text="Method"       prefWidth="120"/>
+                <TableColumn fx:id="colRef"       text="Ref / TxnID" prefWidth="160"/>
+                <TableColumn fx:id="colDate"      text="Date"         prefWidth="100"/>
+            </columns>
+            <placeholder>
+                <Label text="No payments in selected range."/>
+            </placeholder>
+        </TableView>
+
+    </VBox>
+</HBox>

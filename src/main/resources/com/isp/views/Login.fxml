@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+
+<!--
+    Login.fxml
+    Controller: com.isp.controller.LoginController
+    Centered card on a gradient background.
+-->
+<StackPane xmlns="http://javafx.com/javafx/21"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.isp.controller.LoginController"
+           styleClass="root-pane"
+           style="-fx-background-color: linear-gradient(to bottom right, #0f1629, #1e3a5f);">
+
+    <VBox styleClass="login-card" alignment="CENTER" spacing="16">
+
+        <!-- Logo / Title -->
+        <VBox alignment="CENTER" spacing="4">
+            <Label text="🌐  ISP Management" styleClass="login-title"/>
+            <Label text="Internet Service Provider — Admin Portal" styleClass="login-subtitle"/>
+        </VBox>
+
+        <Separator/>
+
+        <!-- Username -->
+        <VBox spacing="4">
+            <Label text="Username" styleClass="form-label"/>
+            <TextField fx:id="usernameField" promptText="Enter username"
+                       styleClass="form-field search-field"
+                       maxWidth="320"/>
+        </VBox>
+
+        <!-- Password -->
+        <VBox spacing="4">
+            <Label text="Password" styleClass="form-label"/>
+            <PasswordField fx:id="passwordField" promptText="Enter password"
+                           styleClass="form-field search-field"
+                           maxWidth="320"/>
+        </VBox>
+
+        <!-- Error label -->
+        <Label fx:id="errorLabel" styleClass="error-label" wrapText="true" maxWidth="320"/>
+
+        <!-- Login button -->
+        <Button fx:id="loginButton" text="Sign In" onAction="#handleLogin"
+                styleClass="btn-primary"
+                maxWidth="320" prefWidth="320" prefHeight="38"/>
+
+        <Label text="Demo: admin / admin" style="-fx-text-fill:#94a3b8; -fx-font-size:11px;"/>
+
+    </VBox>
+</StackPane>

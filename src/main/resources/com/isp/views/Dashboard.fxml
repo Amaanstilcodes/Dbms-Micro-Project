@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<!--
+    Dashboard.fxml
+    Controller: com.isp.controller.DashboardController
+    Layout: Sidebar (left) + content area (right)
+-->
+<HBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.isp.controller.DashboardController"
+      prefWidth="1100" prefHeight="680"
+      styleClass="root-pane">
+
+    <!-- ====================== SIDEBAR ====================== -->
+    <VBox styleClass="sidebar" prefWidth="220" minWidth="220">
+
+        <Label text="📡 ISP System" styleClass="sidebar-logo"/>
+        <Label text="Management Portal" styleClass="sidebar-subtitle"/>
+
+        <Separator style="-fx-background-color:#2d3f6b;"/>
+
+        <Label text="MAIN MENU" styleClass="sidebar-section-label"/>
+
+        <Button text="🏠  Dashboard"       styleClass="nav-button nav-button-active" maxWidth="220" onAction="#goCustomers"/>
+        <Button text="👥  Customers"        styleClass="nav-button" maxWidth="220" onAction="#goCustomers"/>
+        <Button text="📋  Plans"            styleClass="nav-button" maxWidth="220" onAction="#goPlans"/>
+        <Button text="🔗  Subscriptions"    styleClass="nav-button" maxWidth="220" onAction="#goSubscriptions"/>
+
+        <Label text="BILLING" styleClass="sidebar-section-label"/>
+
+        <Button text="🧾  Invoices"         styleClass="nav-button" maxWidth="220" onAction="#goInvoices"/>
+        <Button text="💳  Payments"          styleClass="nav-button" maxWidth="220" onAction="#goPayments"/>
+
+        <Label text="SUPPORT" styleClass="sidebar-section-label"/>
+
+        <Button text="🎫  Support Tickets"  styleClass="nav-button" maxWidth="220" onAction="#goTickets"/>
+        <Button text="📊  Reports"           styleClass="nav-button" maxWidth="220" onAction="#goReports"/>
+
+        <Region VBox.vgrow="ALWAYS"/>
+
+        <Separator style="-fx-background-color:#2d3f6b;"/>
+        <Button text="🚪  Logout" styleClass="nav-logout" maxWidth="220" onAction="#handleLogout"/>
+
+    </VBox>
+
+    <!-- ====================== CONTENT ====================== -->
+    <VBox HBox.hgrow="ALWAYS" styleClass="content-area" spacing="20">
+
+        <!-- Header -->
+        <VBox spacing="2">
+            <Label text="Dashboard" styleClass="page-title"/>
+            <Label fx:id="welcomeLabel" styleClass="page-subtitle"/>
+        </VBox>
+
+        <!-- KPI Cards Row -->
+        <HBox spacing="16">
+
+            <VBox styleClass="kpi-card kpi-card-blue" HBox.hgrow="ALWAYS" spacing="6">
+                <Label text="ACTIVE CUSTOMERS" styleClass="kpi-label"/>
+                <Label fx:id="activeCustomersLabel" text="—" styleClass="kpi-value"/>
+            </VBox>
+
+            <VBox styleClass="kpi-card kpi-card-green" HBox.hgrow="ALWAYS" spacing="6">
+                <Label text="ACTIVE SUBSCRIPTIONS" styleClass="kpi-label"/>
+                <Label fx:id="activeSubscriptionsLabel" text="—" styleClass="kpi-value"/>
+            </VBox>
+
+            <VBox styleClass="kpi-card kpi-card-purple" HBox.hgrow="ALWAYS" spacing="6">
+                <Label text="MONTHLY REVENUE" styleClass="kpi-label"/>
+                <Label fx:id="monthlyRevenueLabel" text="₹ —" styleClass="kpi-value"/>
+            </VBox>
+
+            <VBox styleClass="kpi-card kpi-card-amber" HBox.hgrow="ALWAYS" spacing="6">
+                <Label text="OVERDUE INVOICES" styleClass="kpi-label"/>
+                <Label fx:id="overdueInvoicesLabel" text="—" styleClass="kpi-value"/>
+            </VBox>
+
+            <VBox styleClass="kpi-card kpi-card-red" HBox.hgrow="ALWAYS" spacing="6">
+                <Label text="OPEN TICKETS" styleClass="kpi-label"/>
+                <Label fx:id="openTicketsLabel" text="—" styleClass="kpi-value"/>
+            </VBox>
+
+        </HBox>
+
+        <!-- Quick links grid -->
+        <Label text="Quick Actions" style="-fx-font-size:15px; -fx-font-weight:bold; -fx-text-fill:#1e293b;"/>
+
+        <GridPane hgap="12" vgap="12">
+            <columnConstraints>
+                <ColumnConstraints hgrow="ALWAYS"/>
+                <ColumnConstraints hgrow="ALWAYS"/>
+                <ColumnConstraints hgrow="ALWAYS"/>
+            </columnConstraints>
+
+            <Button GridPane.columnIndex="0" GridPane.rowIndex="0"
+                    text="➕ New Customer"   styleClass="btn-primary"
+                    maxWidth="Infinity"       prefHeight="50"
+                    onAction="#goCustomers"/>
+
+            <Button GridPane.columnIndex="1" GridPane.rowIndex="0"
+                    text="📋 Manage Plans"   styleClass="btn-secondary"
+                    maxWidth="Infinity"       prefHeight="50"
+                    onAction="#goPlans"/>
+
+            <Button GridPane.columnIndex="2" GridPane.rowIndex="0"
+                    text="🔗 New Subscription" styleClass="btn-secondary"
+                    maxWidth="Infinity"         prefHeight="50"
+                    onAction="#goSubscriptions"/>
+
+            <Button GridPane.columnIndex="0" GridPane.rowIndex="1"
+                    text="🧾 View Invoices"  styleClass="btn-secondary"
+                    maxWidth="Infinity"       prefHeight="50"
+                    onAction="#goInvoices"/>
+
+            <Button GridPane.columnIndex="1" GridPane.rowIndex="1"
+                    text="🎫 Support Tickets" styleClass="btn-secondary"
+                    maxWidth="Infinity"        prefHeight="50"
+                    onAction="#goTickets"/>
+
+            <Button GridPane.columnIndex="2" GridPane.rowIndex="1"
+                    text="📊 Reports"         styleClass="btn-secondary"
+                    maxWidth="Infinity"        prefHeight="50"
+                    onAction="#goReports"/>
+        </GridPane>
+
+    </VBox>
+
+</HBox>

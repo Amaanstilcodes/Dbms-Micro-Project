@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<!--
+    Plans.fxml
+    Controller: com.isp.controller.PlansController
+-->
+<HBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.isp.controller.PlansController"
+      prefWidth="1100" prefHeight="680"
+      styleClass="root-pane">
+
+    <VBox styleClass="sidebar" prefWidth="220" minWidth="220">
+        <Label text="📡 ISP System" styleClass="sidebar-logo"/>
+        <Label text="Management Portal" styleClass="sidebar-subtitle"/>
+        <Separator style="-fx-background-color:#2d3f6b;"/>
+        <Label text="MAIN MENU" styleClass="sidebar-section-label"/>
+        <Button text="🏠  Dashboard" styleClass="nav-button" maxWidth="220" onAction="#goBack"/>
+        <Button text="📋  Plans"     styleClass="nav-button nav-button-active" maxWidth="220"/>
+        <Region VBox.vgrow="ALWAYS"/>
+        <Separator style="-fx-background-color:#2d3f6b;"/>
+        <Button text="← Back to Dashboard" styleClass="nav-logout" maxWidth="220" onAction="#goBack"/>
+    </VBox>
+
+    <VBox HBox.hgrow="ALWAYS" styleClass="content-area" spacing="16">
+
+        <VBox spacing="2">
+            <Label text="Internet Plans" styleClass="page-title"/>
+            <Label text="Define and manage BROADBAND, FIBER, WIRELESS and LEASED_LINE plans." styleClass="page-subtitle"/>
+        </VBox>
+
+        <HBox styleClass="toolbar-bar" spacing="8" alignment="CENTER_LEFT">
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button fx:id="addButton"          text="➕ Add Plan"      styleClass="btn-primary"   onAction="#handleAdd"/>
+            <Button fx:id="editButton"         text="✏️ Edit Plan"     styleClass="btn-secondary"  onAction="#handleEdit"/>
+            <Button fx:id="toggleActiveButton" text="⏸ Toggle Active" styleClass="btn-success"    onAction="#handleToggleActive"/>
+        </HBox>
+
+        <TableView fx:id="planTable" VBox.vgrow="ALWAYS" styleClass="table-view">
+            <columns>
+                <TableColumn fx:id="colId"     text="ID"            prefWidth="50"/>
+                <TableColumn fx:id="colName"   text="Plan Name"     prefWidth="180"/>
+                <TableColumn fx:id="colType"   text="Type"          prefWidth="110"/>
+                <TableColumn fx:id="colSpeed"  text="Speed (Mbps)"  prefWidth="110"/>
+                <TableColumn fx:id="colCap"    text="Data Cap (GB)" prefWidth="110"/>
+                <TableColumn fx:id="colPrice"  text="Price (₹)"     prefWidth="100"/>
+                <TableColumn fx:id="colCycle"  text="Billing Cycle" prefWidth="110"/>
+                <TableColumn fx:id="colActive" text="Active"        prefWidth="70"/>
+            </columns>
+            <placeholder>
+                <Label text="No plans found. Click '➕ Add Plan' to create one."/>
+            </placeholder>
+        </TableView>
+
+        <HBox styleClass="status-bar">
+            <Label fx:id="statusLabel" text="Ready"/>
+        </HBox>
+
+    </VBox>
+</HBox>
