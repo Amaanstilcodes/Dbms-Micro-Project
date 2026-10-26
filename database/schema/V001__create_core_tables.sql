@@ -1,7 +1,7 @@
-﻿-- ============================================================
+-- ============================================================
 -- FILE    : V001__create_core_tables.sql
 -- PURPOSE : Oracle DDL for all ISP Management System tables.
---           Run as: isp_app@//localhost:1521/XEPDB1
+--           Run as: isp_app@//localhost:1521/FREEPDB1
 -- AUTHOR  : ISP Dev Team
 -- DATE    : 2026-10-26
 -- NOTES   :
@@ -61,7 +61,7 @@ CREATE TABLE customer (
     created_at      DATE            DEFAULT SYSDATE NOT NULL,
     updated_at      DATE            DEFAULT SYSDATE NOT NULL,
     CONSTRAINT fk_customer_area FOREIGN KEY (area_id)
-        REFERENCES service_area(area_id) ON DELETE RESTRICT,
+        REFERENCES service_area(area_id),
     CONSTRAINT uq_customer_email  UNIQUE (email),
     CONSTRAINT chk_cust_type   CHECK (customer_type IN ('INDIVIDUAL','BUSINESS')),
     CONSTRAINT chk_cust_status CHECK (status         IN ('ACTIVE','INACTIVE','BLACKLISTED')),
@@ -134,11 +134,11 @@ CREATE TABLE subscription (
     created_at      DATE            DEFAULT SYSDATE NOT NULL,
     updated_at      DATE            DEFAULT SYSDATE NOT NULL,
     CONSTRAINT fk_sub_customer FOREIGN KEY (customer_id)
-        REFERENCES customer(customer_id) ON DELETE RESTRICT,
+        REFERENCES customer(customer_id),
     CONSTRAINT fk_sub_plan     FOREIGN KEY (plan_id)
-        REFERENCES plan(plan_id) ON DELETE RESTRICT,
+        REFERENCES plan(plan_id),
     CONSTRAINT fk_sub_area     FOREIGN KEY (area_id)
-        REFERENCES service_area(area_id) ON DELETE RESTRICT,
+        REFERENCES service_area(area_id),
     CONSTRAINT chk_sub_status  CHECK (status IN ('PENDING','ACTIVE','SUSPENDED','TERMINATED')),
     CONSTRAINT chk_sub_dates   CHECK (end_date IS NULL OR end_date >= start_date)
 );
@@ -192,7 +192,7 @@ CREATE TABLE technician (
     hired_date      DATE,
     CONSTRAINT uq_tech_email      UNIQUE (email),
     CONSTRAINT fk_tech_area       FOREIGN KEY (area_id)
-        REFERENCES service_area(area_id) ON DELETE RESTRICT,
+        REFERENCES service_area(area_id),
     CONSTRAINT chk_tech_active    CHECK (is_active IN ('Y','N'))
 );
 
@@ -238,7 +238,7 @@ CREATE TABLE invoice (
     created_at            DATE            DEFAULT SYSDATE NOT NULL,
     updated_at            DATE            DEFAULT SYSDATE NOT NULL,
     CONSTRAINT fk_invoice_sub     FOREIGN KEY (subscription_id)
-        REFERENCES subscription(subscription_id) ON DELETE RESTRICT,
+        REFERENCES subscription(subscription_id),
     CONSTRAINT chk_inv_status     CHECK (status IN ('DRAFT','ISSUED','PARTIALLY_PAID','PAID','OVERDUE','CANCELLED')),
     CONSTRAINT chk_inv_total      CHECK (total_amount >= 0),
     CONSTRAINT chk_inv_paid       CHECK (amount_paid  >= 0),
@@ -275,7 +275,7 @@ CREATE TABLE payment (
     notes           CLOB,
     created_at      DATE            DEFAULT SYSDATE NOT NULL,
     CONSTRAINT fk_payment_invoice  FOREIGN KEY (invoice_id)
-        REFERENCES invoice(invoice_id) ON DELETE RESTRICT,
+        REFERENCES invoice(invoice_id),
     CONSTRAINT chk_pay_method  CHECK (payment_method IN ('CASH','CARD','UPI','BANK_TRANSFER','CHEQUE')),
     CONSTRAINT chk_pay_amount  CHECK (amount > 0)
 );
@@ -314,7 +314,7 @@ CREATE TABLE support_ticket (
     updated_at      DATE            DEFAULT SYSDATE NOT NULL,
     resolved_at     DATE,
     CONSTRAINT fk_ticket_customer  FOREIGN KEY (customer_id)
-        REFERENCES customer(customer_id) ON DELETE RESTRICT,
+        REFERENCES customer(customer_id),
     CONSTRAINT fk_ticket_sub       FOREIGN KEY (subscription_id)
         REFERENCES subscription(subscription_id) ON DELETE SET NULL,
     CONSTRAINT fk_ticket_tech      FOREIGN KEY (assigned_to)
@@ -356,7 +356,7 @@ CREATE TABLE network_outage (
     resolved_by NUMBER,                         -- technician_id
     created_at  DATE            DEFAULT SYSDATE NOT NULL,
     CONSTRAINT fk_outage_area  FOREIGN KEY (area_id)
-        REFERENCES service_area(area_id) ON DELETE RESTRICT,
+        REFERENCES service_area(area_id),
     CONSTRAINT fk_outage_tech  FOREIGN KEY (resolved_by)
         REFERENCES technician(technician_id) ON DELETE SET NULL,
     CONSTRAINT chk_outage_sev  CHECK (severity IN ('LOW','MEDIUM','HIGH','CRITICAL')),

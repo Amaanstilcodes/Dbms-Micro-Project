@@ -1,4 +1,4 @@
-﻿# ============================================================
+# ============================================================
 # FILE    : docker-compose.yml
 # PURPOSE : Oracle XE 21c for local development
 # USAGE   : docker-compose up -d
@@ -13,7 +13,7 @@ services:
     restart: unless-stopped
     environment:
       ORACLE_PASSWORD: oracle            # SYS and SYSTEM password
-      APP_USER: isp_app                  # auto-creates this user in XEPDB1
+      APP_USER: isp_app                  # auto-creates this user in FREEPDB1
       APP_USER_PASSWORD: "ISP_Secure#2025"
     ports:
       - "1521:1521"
@@ -25,6 +25,6 @@ volumes:
   isp_oracle_data:
 
 # After startup, connect with:
-#   sqlplus isp_app/"ISP_Secure#2025"@//localhost:1521/XEPDB1
+#   sqlplus isp_app/"ISP_Secure#2025"@//localhost:1521/FREEPDB1
 # Or from Java:
-#   jdbc:oracle:thin:@//localhost:1521/XEPDB1
+#   jdbc:oracle:thin:@//localhost:1521/FREEPDB1

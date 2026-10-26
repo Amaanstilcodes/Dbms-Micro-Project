@@ -1,9 +1,9 @@
-﻿-- ============================================================
+-- ============================================================
 -- FILE    : V009__security.sql
 -- PURPOSE : Oracle roles, least-privilege grants, password profile
 -- AUTHOR  : ISP Dev Team
 -- DATE    : 2026-10-26
--- RUN AS  : SYSTEM or SYS AS SYSDBA in XEPDB1
+-- RUN AS  : SYSTEM or SYS AS SYSDBA in FREEPDB1
 -- ============================================================
 
 -- ============================================================

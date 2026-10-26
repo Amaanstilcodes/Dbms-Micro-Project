@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 # ============================================================
 # FILE    : backup_commands.sh
 # PURPOSE : Oracle Data Pump export/import and RMAN backup notes
@@ -12,7 +12,7 @@
 # ============================================================
 
 # Export entire ISP_APP schema to a dump file
-expdp system/oracle@//localhost:1521/XEPDB1 \
+expdp system/oracle@//localhost:1521/FREEPDB1 \
     SCHEMAS=ISP_APP \
     DIRECTORY=DATA_PUMP_DIR \
     DUMPFILE=isp_app_$(date +%Y%m%d).dmp \
@@ -20,7 +20,7 @@ expdp system/oracle@//localhost:1521/XEPDB1 \
     COMPRESSION=ALL
 
 # Export only specific tables
-expdp isp_app/"ISP_Secure#2025"@//localhost:1521/XEPDB1 \
+expdp isp_app/"ISP_Secure#2025"@//localhost:1521/FREEPDB1 \
     TABLES=CUSTOMER,SUBSCRIPTION,INVOICE,PAYMENT \
     DIRECTORY=DATA_PUMP_DIR \
     DUMPFILE=isp_billing_$(date +%Y%m%d).dmp
@@ -30,14 +30,14 @@ expdp isp_app/"ISP_Secure#2025"@//localhost:1521/XEPDB1 \
 # ============================================================
 
 # Import to the same schema (restore)
-impdp system/oracle@//localhost:1521/XEPDB1 \
+impdp system/oracle@//localhost:1521/FREEPDB1 \
     SCHEMAS=ISP_APP \
     DIRECTORY=DATA_PUMP_DIR \
     DUMPFILE=isp_app_20250101.dmp \
     LOGFILE=isp_app_imp.log
 
 # Import to a different schema (migration / clone)
-impdp system/oracle@//localhost:1521/XEPDB1 \
+impdp system/oracle@//localhost:1521/FREEPDB1 \
     REMAP_SCHEMA=ISP_APP:ISP_APP_TEST \
     DIRECTORY=DATA_PUMP_DIR \
     DUMPFILE=isp_app_20250101.dmp

@@ -1,10 +1,10 @@
-﻿-- ============================================================
+-- ============================================================
 -- FILE    : V005__pkg_billing.sql
 -- PURPOSE : PL/SQL Package PKG_BILLING with procedures, functions,
 --           cursors, exception handling, SYS_REFCURSOR output.
 -- AUTHOR  : ISP Dev Team
 -- DATE    : 2026-10-26
--- RUN AS  : isp_app@//localhost:1521/XEPDB1
+-- RUN AS  : isp_app@//localhost:1521/FREEPDB1
 -- ============================================================
 SET SERVEROUTPUT ON SIZE UNLIMITED
 

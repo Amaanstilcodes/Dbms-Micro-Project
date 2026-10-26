@@ -1,9 +1,9 @@
-﻿-- ============================================================
+-- ============================================================
 -- FILE    : V004__views.sql
 -- PURPOSE : Oracle views for common ISP business queries
 -- AUTHOR  : ISP Dev Team
 -- DATE    : 2026-10-26
--- RUN AS  : isp_app@//localhost:1521/XEPDB1
+-- RUN AS  : isp_app@//localhost:1521/FREEPDB1
 -- ============================================================
 SET SERVEROUTPUT ON SIZE UNLIMITED
 

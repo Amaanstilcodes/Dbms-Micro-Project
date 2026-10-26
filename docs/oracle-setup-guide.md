@@ -1,4 +1,4 @@
-﻿# Oracle XE 21c Setup Guide
+# Oracle XE 21c Setup Guide
 
 ## 1. Install Oracle XE 21c
 - Windows: Download installer from https://www.oracle.com/database/technologies/xe-downloads.html
@@ -7,19 +7,19 @@
 ## 2. Start the Listener
 ```bash
 lsnrctl start      # start listener
-lsnrctl status     # verify it shows XEPDB1 as registered service
+lsnrctl status     # verify it shows FREEPDB1 as registered service
 lsnrctl stop       # stop listener
 ```
 
 ## 3. Create Application User (as SYSTEM)
 ```sql
-sqlplus system/oracle@//localhost:1521/XEPDB1
+sqlplus system/oracle@//localhost:1521/FREEPDB1
 @database/setup/create_user.sql
 ```
 
 ## 4. Run All Scripts
 ```bash
-sqlplus isp_app/"ISP_Secure#2025"@//localhost:1521/XEPDB1 @database/run_all.sql
+sqlplus isp_app/"ISP_Secure#2025"@//localhost:1521/FREEPDB1 @database/run_all.sql
 ```
 
 ## 5. Verify Tables
@@ -53,11 +53,11 @@ mvn javafx:run             # launch the JavaFX app
 ## Connection URL Formats
 ```
 # Service name (recommended for PDB):
-jdbc:oracle:thin:@//localhost:1521/XEPDB1
+jdbc:oracle:thin:@//localhost:1521/FREEPDB1
 
 # SID (legacy for non-CDB):
 jdbc:oracle:thin:@localhost:1521:XE
 
 # With TNS alias (if tnsnames.ora configured):
-jdbc:oracle:thin:@XEPDB1
+jdbc:oracle:thin:@FREEPDB1
 ```

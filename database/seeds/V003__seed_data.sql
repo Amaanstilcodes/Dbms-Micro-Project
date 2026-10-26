@@ -1,11 +1,11 @@
-﻿-- ============================================================
+-- ============================================================
 -- FILE    : V003__seed_data.sql
 -- PURPOSE : Realistic sample data for all ISP tables.
 --           20 customers, 6 plans, 20+ subscriptions,
 --           3 months of invoices/payments/usage, 15 tickets.
 -- AUTHOR  : ISP Dev Team
 -- DATE    : 2026-10-26
--- RUN AS  : isp_app@//localhost:1521/XEPDB1
+-- RUN AS  : isp_app@//localhost:1521/FREEPDB1
 -- NOTES   : Oracle DATE literals use TO_DATE or DATE 'YYYY-MM-DD'.
 --           Sequences and IDENTITY columns handle PKs automatically.
 --           Script ends with explicit COMMIT.
@@ -184,7 +184,7 @@ INSERT INTO payment (invoice_id,amount,payment_method,transaction_ref,payment_da
 INSERT INTO payment (invoice_id,amount,payment_method,transaction_ref,payment_date)
     VALUES (6, 500.00, 'UPI',          'UPI20250202GHI', ADD_MONTHS(SYSDATE,-48/30));
 INSERT INTO payment (invoice_id,amount,payment_method,transaction_ref,payment_date)
-    VALUES (10,5898.82,'BANK_TRANSFER','RTGS20250301VWX',ADD_MONTHS(SYSDATE,-20/30));
+    VALUES (9, 5898.82,'BANK_TRANSFER','RTGS20250301VWX',ADD_MONTHS(SYSDATE,-20/30));
 
 -- ===== USAGE_RECORD (30 days for subscription 1) =====
 DECLARE
@@ -242,6 +242,6 @@ INSERT INTO app_user (username,password_hash,role,technician_id) VALUES ('tech.r
 INSERT INTO app_user (username,password_hash,role,technician_id) VALUES ('support.priya','$2a$12$REPLACE_HASH_supp','SUPPORT_AGENT',2);
 
 COMMIT;
-SET FEEDBACK ON
+SET FEEDBACK OFF
 PROMPT Seed data inserted successfully.
 PROMPT NOTE: Update APP_USER password_hash values by running PasswordUtil.main() from Java.

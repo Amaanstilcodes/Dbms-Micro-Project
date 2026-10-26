@@ -1,15 +1,15 @@
-﻿-- ============================================================
+-- ============================================================
 -- FILE    : V002__indexes.sql
 -- PURPOSE : Performance indexes for Oracle ISP schema.
 --           Each index annotated with the query it accelerates.
 -- AUTHOR  : ISP Dev Team
 -- DATE    : 2026-10-26
--- RUN AS  : isp_app@//localhost:1521/XEPDB1
+-- RUN AS  : isp_app@//localhost:1521/FREEPDB1
 -- ============================================================
 SET SERVEROUTPUT ON SIZE UNLIMITED
 
--- CUSTOMER searches (email lookup on login, status filter for active list)
-CREATE INDEX idx_customer_email   ON customer(email);
+-- CUSTOMER searches (email lookup on login already indexed by uq_customer_email UNIQUE constraint, status filter for active list)
+-- CREATE INDEX idx_customer_email   ON customer(email); -- ORA-01408: already indexed by uq_customer_email
 CREATE INDEX idx_customer_status  ON customer(status);
 CREATE INDEX idx_customer_area    ON customer(area_id);
 
@@ -30,9 +30,8 @@ CREATE INDEX idx_inv_overdue      ON invoice(status, due_date);
 CREATE INDEX idx_pay_invoice      ON payment(invoice_id);
 CREATE INDEX idx_pay_date         ON payment(payment_date);
 
--- USAGE_RECORD monthly aggregation: (subscription_id, usage_date) covers
--- WHERE subscription_id=? AND usage_date BETWEEN ? AND ?
-CREATE INDEX idx_usage_sub_date   ON usage_record(subscription_id, usage_date);
+-- USAGE_RECORD monthly aggregation: (subscription_id, usage_date) is already indexed by uq_usage_daily UNIQUE constraint
+-- CREATE INDEX idx_usage_sub_date   ON usage_record(subscription_id, usage_date); -- ORA-01408: indexed by uq_usage_daily
 
 -- SUPPORT_TICKET assignment and status queries
 CREATE INDEX idx_ticket_customer  ON support_ticket(customer_id);

@@ -1,16 +1,16 @@
-﻿-- ============================================================
+-- ============================================================
 -- FILE    : create_user.sql
 -- PURPOSE : Create ISP application schema/user in Oracle XE 21c
 -- AUTHOR  : ISP Dev Team
 -- DATE    : 2026-10-26
--- RUN AS  : SYSTEM or SYS AS SYSDBA in the PDB (XEPDB1)
+-- RUN AS  : SYSTEM or SYS AS SYSDBA in the PDB (FREEPDB1)
 --
 -- SQL*Plus connect command:
---   sqlplus system/oracle@//localhost:1521/XEPDB1
+--   sqlplus system/oracle@//localhost:1521/FREEPDB1
 --
 -- CONNECTION URL FORMATS:
 --   Service name (recommended for PDB):
---     jdbc:oracle:thin:@//localhost:1521/XEPDB1
+--     jdbc:oracle:thin:@//localhost:1521/FREEPDB1
 --   SID (legacy, for non-CDB):
 --     jdbc:oracle:thin:@localhost:1521:XE
 --
@@ -21,7 +21,7 @@
 -- ============================================================
 
 -- Run inside the PDB, not CDB$ROOT
-ALTER SESSION SET CONTAINER = XEPDB1;
+ALTER SESSION SET CONTAINER = FREEPDB1;
 
 -- ============================================================
 -- Optional: Create a dedicated tablespace for ISP data
@@ -71,4 +71,4 @@ GRANT SELECT ANY DICTIONARY           TO isp_app;  -- for EXPLAIN PLAN
 COMMIT;
 
 PROMPT ISP_APP user created successfully.
-PROMPT Connect with: sqlplus isp_app/"ISP_Secure#2025"@//localhost:1521/XEPDB1
+PROMPT Connect with: sqlplus isp_app/"ISP_Secure#2025"@//localhost:1521/FREEPDB1

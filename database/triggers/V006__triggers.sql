@@ -1,11 +1,11 @@
-﻿-- ============================================================
+-- ============================================================
 -- FILE    : V006__triggers.sql
 -- PURPOSE : Oracle PL/SQL triggers for audit, business rules,
 --           and cascade logic. Includes compound trigger pattern
 --           to avoid ORA-04091 mutating table error.
 -- AUTHOR  : ISP Dev Team
 -- DATE    : 2026-10-26
--- RUN AS  : isp_app@//localhost:1521/XEPDB1
+-- RUN AS  : isp_app@//localhost:1521/FREEPDB1
 -- ============================================================
 SET SERVEROUTPUT ON SIZE UNLIMITED
 

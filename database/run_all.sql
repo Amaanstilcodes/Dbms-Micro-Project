@@ -1,4 +1,4 @@
-﻿-- ============================================================
+-- ============================================================
 -- FILE    : run_all.sql
 -- PURPOSE : Master SQL*Plus script that runs all database scripts
 --           in the correct dependency order.
@@ -6,11 +6,11 @@
 -- DATE    : 2026-10-26
 --
 -- HOW TO RUN:
---   sqlplus isp_app/"ISP_Secure#2025"@//localhost:1521/XEPDB1 @run_all.sql
+--   sqlplus isp_app/"ISP_Secure#2025"@//localhost:1521/FREEPDB1 @run_all.sql
 --
 -- For a CLEAN INSTALL (drop everything first):
---   sqlplus isp_app/"ISP_Secure#2025"@//localhost:1521/XEPDB1 @setup/drop_all.sql
---   sqlplus isp_app/"ISP_Secure#2025"@//localhost:1521/XEPDB1 @run_all.sql
+--   sqlplus isp_app/"ISP_Secure#2025"@//localhost:1521/FREEPDB1 @setup/drop_all.sql
+--   sqlplus isp_app/"ISP_Secure#2025"@//localhost:1521/FREEPDB1 @run_all.sql
 -- ============================================================
 
 SET SERVEROUTPUT ON SIZE UNLIMITED
@@ -63,6 +63,6 @@ ORDER  BY object_type, object_name;
 
 PROMPT ========================================================
 PROMPT All done! Connect app with:
-PROMPT   jdbc:oracle:thin:@//localhost:1521/XEPDB1
+PROMPT   jdbc:oracle:thin:@//localhost:1521/FREEPDB1
 PROMPT   user: isp_app
 PROMPT ========================================================
