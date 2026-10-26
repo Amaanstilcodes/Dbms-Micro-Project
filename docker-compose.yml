@@ -1,0 +1,25 @@
+﻿# ============================================================
+# FILE    : docker-compose.yml
+# PURPOSE : Spin up MySQL 8 for local development
+# USAGE   : docker-compose up -d
+# ============================================================
+version: "3.8"
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: isp_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: isp_db
+      MYSQL_USER: isp_app
+      MYSQL_PASSWORD: changeme_strong_password_here
+    ports:
+      - "3306:3306"
+    volumes:
+      - isp_mysql_data:/var/lib/mysql
+      - ./database/schema:/docker-entrypoint-initdb.d   # auto-runs DDL on first start
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+volumes:
+  isp_mysql_data:

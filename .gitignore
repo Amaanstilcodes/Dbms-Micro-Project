@@ -1,0 +1,27 @@
+﻿# ============================================================
+# .gitignore for ISP Management System
+# ============================================================
+
+# Maven
+target/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.classpath
+*.project
+.settings/
+
+# Environment and secrets - NEVER commit these
+.env
+src/main/resources/db.properties
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
