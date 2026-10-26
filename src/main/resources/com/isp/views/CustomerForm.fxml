@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<!--
+    CustomerForm.fxml
+    Modal dialog for Add Customer (editMode=false) and Edit Customer (editMode=true).
+    Controller: com.isp.controller.CustomerFormController
+    Uses existing CSS classes from style.css — no new styles required.
+-->
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.isp.controller.CustomerFormController"
+      prefWidth="520"
+      styleClass="content-area"
+      spacing="0">
+
+    <!-- ── Header ── -->
+    <VBox style="-fx-background-color:#131d35; -fx-padding:20 24 16 24;" spacing="4">
+        <Label fx:id="titleLabel" text="Add Customer"
+               style="-fx-font-size:18px; -fx-font-weight:bold; -fx-text-fill:white;"/>
+        <Label fx:id="subtitleLabel" text="Fill in all required fields and click Save."
+               style="-fx-font-size:12px; -fx-text-fill:#94a3b8;"/>
+    </VBox>
+
+    <!-- ── Scrollable body ── -->
+    <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS"
+                style="-fx-background-color:#f1f5f9; -fx-border-color:transparent;">
+        <VBox spacing="16" style="-fx-padding:20 24;">
+
+            <!-- ── Row 1: Type + Status ── -->
+            <HBox spacing="16">
+                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                    <Label text="Customer Type *" styleClass="form-label"/>
+                    <ComboBox fx:id="typeCombo" maxWidth="Infinity"
+                              styleClass="combo-box"/>
+                    <Label fx:id="typeError" styleClass="error-label" visible="false" managed="false"/>
+                </VBox>
+                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                    <Label text="Status *" styleClass="form-label"/>
+                    <ComboBox fx:id="statusCombo" maxWidth="Infinity"
+                              styleClass="combo-box"/>
+                    <Label fx:id="statusError" styleClass="error-label" visible="false" managed="false"/>
+                </VBox>
+            </HBox>
+
+            <!-- ── Row 2: First + Last name ── -->
+            <HBox spacing="16">
+                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                    <Label text="First Name *" styleClass="form-label"/>
+                    <TextField fx:id="firstNameField" promptText="e.g. Arjun"
+                               styleClass="form-field" maxWidth="Infinity"/>
+                    <Label fx:id="firstNameError" styleClass="error-label" visible="false" managed="false"/>
+                </VBox>
+                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                    <Label text="Last Name *" styleClass="form-label"/>
+                    <TextField fx:id="lastNameField" promptText="e.g. Mehta"
+                               styleClass="form-field" maxWidth="Infinity"/>
+                    <Label fx:id="lastNameError" styleClass="error-label" visible="false" managed="false"/>
+                </VBox>
+            </HBox>
+
+            <!-- ── Company name (BUSINESS only) ── -->
+            <VBox fx:id="companyRow" spacing="4" visible="false" managed="false">
+                <Label text="Company Name *" styleClass="form-label"/>
+                <TextField fx:id="companyField" promptText="e.g. TechVentures Pvt Ltd"
+                           styleClass="form-field" maxWidth="Infinity"/>
+                <Label fx:id="companyError" styleClass="error-label" visible="false" managed="false"/>
+            </VBox>
+
+            <!-- ── Row 3: Email + Phone ── -->
+            <HBox spacing="16">
+                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                    <Label text="Email *" styleClass="form-label"/>
+                    <TextField fx:id="emailField" promptText="user@example.com"
+                               styleClass="form-field" maxWidth="Infinity"/>
+                    <Label fx:id="emailError" styleClass="error-label" visible="false" managed="false"/>
+                </VBox>
+                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                    <Label text="Phone * (10 digits)" styleClass="form-label"/>
+                    <TextField fx:id="phoneField" promptText="9XXXXXXXXX"
+                               styleClass="form-field" maxWidth="Infinity"/>
+                    <Label fx:id="phoneError" styleClass="error-label" visible="false" managed="false"/>
+                </VBox>
+            </HBox>
+
+            <!-- ── Alternate phone + Service area ── -->
+            <HBox spacing="16">
+                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                    <Label text="Alternate Phone" styleClass="form-label"/>
+                    <TextField fx:id="altPhoneField" promptText="Optional"
+                               styleClass="form-field" maxWidth="Infinity"/>
+                    <Label fx:id="altPhoneError" styleClass="error-label" visible="false" managed="false"/>
+                </VBox>
+                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                    <Label text="Service Area *" styleClass="form-label"/>
+                    <ComboBox fx:id="areaCombo" maxWidth="Infinity"
+                              styleClass="combo-box"/>
+                    <Label fx:id="areaError" styleClass="error-label" visible="false" managed="false"/>
+                </VBox>
+            </HBox>
+
+            <!-- ── Row 4: ID proof type + number ── -->
+            <HBox spacing="16">
+                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                    <Label text="ID Proof Type *" styleClass="form-label"/>
+                    <ComboBox fx:id="idTypeCombo" maxWidth="Infinity"
+                              styleClass="combo-box"/>
+                    <Label fx:id="idTypeError" styleClass="error-label" visible="false" managed="false"/>
+                </VBox>
+                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                    <Label text="ID Proof Number *" styleClass="form-label"/>
+                    <TextField fx:id="idNumberField" promptText="e.g. XXXX-XXXX-1234"
+                               styleClass="form-field" maxWidth="Infinity"/>
+                    <Label fx:id="idNumberError" styleClass="error-label" visible="false" managed="false"/>
+                </VBox>
+            </HBox>
+
+            <!-- ── GST (optional, BUSINESS only) ── -->
+            <VBox fx:id="gstRow" spacing="4" visible="false" managed="false">
+                <Label text="GST Number (optional)" styleClass="form-label"/>
+                <TextField fx:id="gstField" promptText="e.g. 27AABCT1234C1ZK"
+                           styleClass="form-field" maxWidth="Infinity"/>
+            </VBox>
+
+            <!-- ── Top-level error banner (shown if save fails) ── -->
+            <Label fx:id="formErrorLabel" wrapText="true"
+                   style="-fx-text-fill:#dc2626; -fx-font-size:12px;
+                          -fx-background-color:#fee2e2; -fx-padding:8 12;
+                          -fx-background-radius:6;"
+                   visible="false" managed="false"/>
+
+        </VBox>
+    </ScrollPane>
+
+    <!-- ── Footer buttons ── -->
+    <HBox style="-fx-padding:14 24; -fx-background-color:white;
+                 -fx-border-color:#e2e8f0 transparent transparent transparent;"
+          spacing="12" alignment="CENTER_RIGHT">
+        <Button text="Cancel" styleClass="btn-secondary"
+                prefWidth="90" onAction="#handleCancel"/>
+        <Button fx:id="saveButton" text="Save" styleClass="btn-primary"
+                prefWidth="110" onAction="#handleSave"/>
+    </HBox>
+
+</VBox>

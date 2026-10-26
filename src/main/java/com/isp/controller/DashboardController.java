@@ -1,5 +1,6 @@
 package com.isp.controller;
 
+import com.isp.service.MockDataService;
 import com.isp.util.SceneManager;
 import com.isp.util.SessionManager;
 import javafx.fxml.FXML;
@@ -12,7 +13,13 @@ import java.io.IOException;
  * Shows KPI cards: active customers, active subscriptions,
  * monthly revenue, overdue invoices, open tickets.
  *
- * TODO: inject DAOs and populate KPI labels from DB.
+ * Phase A: KPIs populated from MockDataService.
+ * Phase B: replace each MockDataService call with the real DAO:
+ *   activeCustomersLabel.setText(String.valueOf(DAOFactory.getCustomerDAO().countActive()));
+ *   activeSubscriptionsLabel.setText(String.valueOf(DAOFactory.getSubscriptionDAO().countActive()));
+ *   monthlyRevenueLabel.setText("₹ " + DAOFactory.getInvoiceDAO().getMonthlyRevenue());
+ *   overdueInvoicesLabel.setText(String.valueOf(DAOFactory.getInvoiceDAO().countOverdue()));
+ *   openTicketsLabel.setText(String.valueOf(DAOFactory.getSupportTicketDAO().countOpen()));
  */
 public class DashboardController {
 
@@ -28,12 +35,12 @@ public class DashboardController {
         welcomeLabel.setText("Welcome, " + SessionManager.getUsername()
                 + "  [" + SessionManager.getRole() + "]");
 
-        // --- TODO: replace stubs with DAO calls ---
-        activeCustomersLabel.setText("—");
-        activeSubscriptionsLabel.setText("—");
-        monthlyRevenueLabel.setText("₹ —");
-        overdueInvoicesLabel.setText("—");
-        openTicketsLabel.setText("—");
+        // Phase A ── mock KPI values (realistic numbers from seed data)
+        activeCustomersLabel.setText(String.valueOf(MockDataService.countActiveCustomers()));
+        activeSubscriptionsLabel.setText(String.valueOf(MockDataService.getActiveSubscriptionsCount()));
+        monthlyRevenueLabel.setText("₹ " + MockDataService.getMonthlyRevenue());
+        overdueInvoicesLabel.setText(String.valueOf(MockDataService.getOverdueInvoicesCount()));
+        openTicketsLabel.setText(String.valueOf(MockDataService.getOpenTicketsCount()));
     }
 
     // ---- Sidebar navigation ----
