@@ -1,232 +1,426 @@
 package com.isp.ui;
 
 import com.isp.Db;
+import com.isp.ui.components.ConfirmDialog;
+import com.isp.ui.components.FormField;
+import com.isp.ui.components.ToastManager;
+import javafx.animation.PauseTransition;
+import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
+import javafx.util.Duration;
+import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.function.Consumer;
 
 public class CustomersScreen extends VBox {
     private final StackPane tableContainer;
     private final TextField searchField;
+    private final ComboBox<String> statusFilter;
+    private final ComboBox<String> typeFilter;
 
     public CustomersScreen() {
         setSpacing(16);
-        setPadding(new Insets(20));
+        setPadding(new Insets(24));
 
-        HBox header = new HBox(12);
+        // Header Row: Title & Action Button
+        HBox header = new HBox(16);
         header.setAlignment(Pos.CENTER_LEFT);
 
-        Label title = new Label("Customers");
-        title.setFont(Font.font("System", FontWeight.BOLD, 18));
+        VBox titleBox = new VBox(2);
+        Label title = new Label("Customer Directory");
+        title.getStyleClass().add("page-title");
+        Label subtitle = new Label("Manage active broadband subscribers and corporate client accounts");
+        subtitle.getStyleClass().add("page-subtitle");
+        titleBox.getChildren().addAll(title, subtitle);
 
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-
-        searchField = new TextField();
-        searchField.setPromptText("Search by name, email, phone...");
-        searchField.setPrefWidth(260);
-
-        Button searchBtn = new Button("Search");
-        searchBtn.setOnAction(e -> refreshTable());
+        Region headerSpacer = new Region();
+        HBox.setHgrow(headerSpacer, Priority.ALWAYS);
 
         Button addBtn = new Button("+ Add Customer");
-        addBtn.setStyle("-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold;");
+        addBtn.getStyleClass().add("btn-primary");
         addBtn.setOnAction(e -> openAddDialog());
 
-        Button editBtn = new Button("Edit Status / Phone");
+        header.getChildren().addAll(titleBox, headerSpacer, addBtn);
+
+        // Toolbar Card: Search, Filters, Clear, Export
+        HBox toolbar = new HBox(12);
+        toolbar.getStyleClass().add("toolbar-card");
+        toolbar.setAlignment(Pos.CENTER_LEFT);
+
+        FontIcon searchIcon = new FontIcon("fas-search");
+        searchIcon.setIconSize(13);
+        searchIcon.setStyle("-fx-icon-color: -color-muted;");
+
+        searchField = new TextField();
+        searchField.setPromptText("Search name, email, phone (live)...");
+        searchField.setPrefWidth(280);
+
+        // Debounced search on typing
+        PauseTransition debounce = new PauseTransition(Duration.millis(300));
+        debounce.setOnFinished(e -> refreshTable());
+        searchField.textProperty().addListener((obs, oldVal, newVal) -> debounce.playFromStart());
+
+        statusFilter = new ComboBox<>();
+        statusFilter.getItems().addAll("All Statuses", "ACTIVE", "INACTIVE", "BLACKLISTED");
+        statusFilter.setValue("All Statuses");
+        statusFilter.setOnAction(e -> refreshTable());
+
+        typeFilter = new ComboBox<>();
+        typeFilter.getItems().addAll("All Types", "INDIVIDUAL", "BUSINESS");
+        typeFilter.setValue("All Types");
+        typeFilter.setOnAction(e -> refreshTable());
+
+        Button clearBtn = new Button("Clear Filters");
+        clearBtn.getStyleClass().add("btn-ghost");
+        clearBtn.setOnAction(e -> {
+            searchField.clear();
+            statusFilter.setValue("All Statuses");
+            typeFilter.setValue("All Types");
+            refreshTable();
+        });
+
+        Region toolbarSpacer = new Region();
+        HBox.setHgrow(toolbarSpacer, Priority.ALWAYS);
+
+        Button editBtn = new Button("Edit Contact");
+        editBtn.getStyleClass().add("btn-secondary");
+        editBtn.setDisable(true);
         editBtn.setOnAction(e -> openEditDialog());
 
         Button deactivateBtn = new Button("Deactivate");
-        deactivateBtn.setStyle("-fx-text-fill: #dc2626;");
+        deactivateBtn.getStyleClass().add("btn-danger");
+        deactivateBtn.setDisable(true);
         deactivateBtn.setOnAction(e -> openDeactivateDialog());
 
-        header.getChildren().addAll(title, spacer, searchField, searchBtn, addBtn, editBtn, deactivateBtn);
+        toolbar.getChildren().addAll(searchIcon, searchField, statusFilter, typeFilter, clearBtn, toolbarSpacer, editBtn, deactivateBtn);
+
+        // Table Container Card
+        VBox tableCard = new VBox();
+        tableCard.getStyleClass().add("card");
+        VBox.setVgrow(tableCard, Priority.ALWAYS);
+        tableCard.setFillWidth(true);
 
         tableContainer = new StackPane();
+        tableContainer.setMaxWidth(Double.MAX_VALUE);
         VBox.setVgrow(tableContainer, Priority.ALWAYS);
+        tableCard.getChildren().add(tableContainer);
 
-        getChildren().addAll(header, tableContainer);
+        getChildren().addAll(header, toolbar, tableCard);
         refreshTable();
     }
 
     private void refreshTable() {
         String q = searchField.getText().trim();
-        String sql;
-        StackPane table;
+        String status = statusFilter.getValue();
+        String type = typeFilter.getValue();
+
+        StringBuilder sql = new StringBuilder(
+            "SELECT customer_id, first_name || ' ' || last_name AS name, email, phone, customer_type, status, created_at FROM customer WHERE 1=1"
+        );
+
+        if (!"All Statuses".equals(status)) {
+            sql.append(" AND status = '").append(status).append("'");
+        }
+        if (!"All Types".equals(type)) {
+            sql.append(" AND customer_type = '").append(type).append("'");
+        }
+
+        TableViewBuilder.TableContainer table;
+        Consumer<ObservableList<String>> onSelect = row -> {
+            boolean hasSel = row != null;
+            // Lookup buttons in toolbar
+            HBox tb = (HBox) getChildren().get(1);
+            Button edit = (Button) tb.getChildren().get(6);
+            Button deact = (Button) tb.getChildren().get(7);
+            edit.setDisable(!hasSel);
+            deact.setDisable(!hasSel);
+            if (hasSel) {
+                selectedCustomerId = Integer.parseInt(row.get(0));
+            }
+        };
+
         if (q.isEmpty()) {
-            sql = "SELECT customer_id, customer_type, first_name || ' ' || last_name AS name, company_name, email, phone, status, created_at FROM customer ORDER BY customer_id DESC";
-            table = TableViewBuilder.buildAsyncTable(sql);
+            sql.append(" ORDER BY customer_id DESC");
+            table = TableViewBuilder.buildAsyncTable(
+                row -> ToastManager.showInfo("Selected Customer ID #" + row.get(0) + " (" + row.get(1) + ")"),
+                onSelect,
+                sql.toString()
+            );
         } else {
-            sql = "SELECT customer_id, customer_type, first_name || ' ' || last_name AS name, company_name, email, phone, status, created_at FROM customer " +
-                  "WHERE LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ? OR LOWER(email) LIKE ? OR phone LIKE ? ORDER BY customer_id DESC";
+            sql.append(" AND (LOWER(first_name) LIKE ? OR LOWER(last_name) LIKE ? OR LOWER(email) LIKE ? OR phone LIKE ?) ORDER BY customer_id DESC");
             String pattern = "%" + q.toLowerCase() + "%";
-            table = TableViewBuilder.buildAsyncTable(sql, pattern, pattern, pattern, "%" + q + "%");
+            table = TableViewBuilder.buildAsyncTable(
+                row -> ToastManager.showInfo("Selected Customer ID #" + row.get(0) + " (" + row.get(1) + ")"),
+                onSelect,
+                sql.toString(), pattern, pattern, pattern, "%" + q + "%"
+            );
         }
         tableContainer.getChildren().setAll(table);
     }
 
+    private Integer selectedCustomerId = null;
+
     private void openAddDialog() {
         Dialog<Boolean> dialog = new Dialog<>();
         dialog.setTitle("Add New Customer");
-        dialog.setHeaderText("Enter Customer Details");
+        dialog.setHeaderText(null);
 
-        ButtonType saveBtnType = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(saveBtnType, ButtonType.CANCEL);
+        VBox content = new VBox(16);
+        content.getStyleClass().add("card");
+        content.setPrefWidth(450);
 
-        GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(20, 150, 10, 10));
+        Label titleLbl = new Label("Register Customer");
+        titleLbl.setStyle("-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: -color-text;");
 
         ComboBox<String> typeBox = new ComboBox<>();
         typeBox.getItems().addAll("INDIVIDUAL", "BUSINESS");
         typeBox.setValue("INDIVIDUAL");
+        typeBox.setMaxWidth(Double.MAX_VALUE);
 
         TextField fName = new TextField();
+        FormField fNameField = new FormField("First Name", fName, true);
+
         TextField lName = new TextField();
+        FormField lNameField = new FormField("Last Name", lName, true);
+
         TextField comp = new TextField();
+        FormField compField = new FormField("Company Name (Business accounts)", comp, false);
+
         TextField email = new TextField();
+        FormField emailField = new FormField("Email Address", email, true);
+
         TextField phone = new TextField();
+        FormField phoneField = new FormField("Phone Number", phone, true);
+
         TextField areaId = new TextField("1");
+        FormField areaField = new FormField("Service Area ID", areaId, true);
 
-        grid.add(new Label("Customer Type:"), 0, 0); grid.add(typeBox, 1, 0);
-        grid.add(new Label("First Name:"), 0, 1);    grid.add(fName, 1, 1);
-        grid.add(new Label("Last Name:"), 0, 2);     grid.add(lName, 1, 2);
-        grid.add(new Label("Company Name:"), 0, 3);  grid.add(comp, 1, 3);
-        grid.add(new Label("Email:"), 0, 4);         grid.add(email, 1, 4);
-        grid.add(new Label("Phone:"), 0, 5);         grid.add(phone, 1, 5);
-        grid.add(new Label("Service Area ID:"), 0, 6);grid.add(areaId, 1, 6);
+        HBox btnRow = new HBox(10);
+        btnRow.setAlignment(Pos.CENTER_RIGHT);
 
-        dialog.getDialogPane().setContent(grid);
+        Button cancelBtn = new Button("Cancel");
+        cancelBtn.getStyleClass().add("btn-secondary");
+        cancelBtn.setOnAction(e -> dialog.setResult(false));
 
-        dialog.setResultConverter(dialogButton -> {
-            if (dialogButton == saveBtnType) {
-                Task<Void> task = new Task<>() {
-                    @Override
-                    protected Void call() throws Exception {
-                        String sql = "INSERT INTO customer (customer_type, first_name, last_name, company_name, email, phone, area_id) " +
-                                     "VALUES (?, ?, ?, ?, ?, ?, ?)";
-                        try (Connection conn = Db.getConnection();
-                             PreparedStatement ps = conn.prepareStatement(sql)) {
-                            ps.setString(1, typeBox.getValue());
-                            ps.setString(2, fName.getText().trim());
-                            ps.setString(3, lName.getText().trim());
-                            ps.setString(4, comp.getText().trim().isEmpty() ? null : comp.getText().trim());
-                            ps.setString(5, email.getText().trim());
-                            ps.setString(6, phone.getText().trim());
-                            ps.setInt(7, Integer.parseInt(areaId.getText().trim()));
-                            ps.executeUpdate();
-                        }
-                        return null;
+        Button saveBtn = new Button("Create Customer");
+        saveBtn.getStyleClass().add("btn-primary");
+
+        btnRow.getChildren().addAll(cancelBtn, saveBtn);
+
+        content.getChildren().addAll(
+            titleLbl,
+            new Label("Customer Type *"), typeBox,
+            new HBox(10, fNameField, lNameField),
+            compField,
+            emailField,
+            new HBox(10, phoneField, areaField),
+            btnRow
+        );
+
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().getStylesheets().add(getClass().getResource("/css/isp-theme.css").toExternalForm());
+
+        saveBtn.setOnAction(e -> {
+            boolean valid = true;
+            if (fName.getText().trim().isEmpty()) { fNameField.setError("First name is required"); valid = false; } else fNameField.clearError();
+            if (lName.getText().trim().isEmpty()) { lNameField.setError("Last name is required"); valid = false; } else lNameField.clearError();
+            if (!email.getText().matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) { emailField.setError("Enter a valid email address"); valid = false; } else emailField.clearError();
+            if (phone.getText().trim().length() < 7) { phoneField.setError("Valid phone required"); valid = false; } else phoneField.clearError();
+
+            if (!valid) return;
+
+            saveBtn.setDisable(true);
+            Task<Void> task = new Task<>() {
+                @Override
+                protected Void call() throws Exception {
+                    String insert = "INSERT INTO customer (customer_type, first_name, last_name, company_name, email, phone, area_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                    try (Connection conn = Db.getConnection();
+                         PreparedStatement ps = conn.prepareStatement(insert)) {
+                        ps.setString(1, typeBox.getValue());
+                        ps.setString(2, fName.getText().trim());
+                        ps.setString(3, lName.getText().trim());
+                        ps.setString(4, comp.getText().trim().isEmpty() ? null : comp.getText().trim());
+                        ps.setString(5, email.getText().trim());
+                        ps.setString(6, phone.getText().trim());
+                        ps.setInt(7, Integer.parseInt(areaId.getText().trim()));
+                        ps.executeUpdate();
                     }
-                };
-                task.setOnSucceeded(ev -> {
-                    TableViewBuilder.showInfo("Success", "Customer created successfully!");
-                    refreshTable();
-                });
-                task.setOnFailed(ev -> TableViewBuilder.showError("Customer Creation Failed", task.getException().getMessage()));
-                new Thread(task).start();
-                return true;
-            }
-            return null;
+                    return null;
+                }
+            };
+
+            task.setOnSucceeded(ev -> {
+                dialog.setResult(true);
+                dialog.close();
+                ToastManager.showSuccess("Customer created successfully!");
+                refreshTable();
+            });
+
+            task.setOnFailed(ev -> {
+                saveBtn.setDisable(false);
+                ToastManager.showError("Save error: " + TableViewBuilder.cleanOracleMessage(task.getException().getMessage()));
+            });
+
+            new Thread(task).start();
         });
 
         dialog.showAndWait();
     }
 
     private void openEditDialog() {
+        if (selectedCustomerId != null) {
+            editCustomerById(selectedCustomerId);
+            return;
+        }
         TextInputDialog idDialog = new TextInputDialog();
         idDialog.setTitle("Edit Customer");
-        idDialog.setHeaderText("Enter Customer ID to update");
-        idDialog.setContentText("Customer ID:");
+        idDialog.setHeaderText("Update Customer Contact");
+        idDialog.setContentText("Enter Customer ID to edit:");
+        idDialog.getDialogPane().getStylesheets().add(getClass().getResource("/css/isp-theme.css").toExternalForm());
+
         idDialog.showAndWait().ifPresent(idStr -> {
             try {
-                int cid = Integer.parseInt(idStr.trim());
-                Dialog<Void> d = new Dialog<>();
-                d.setTitle("Edit Customer #" + cid);
-                ButtonType updateBtn = new ButtonType("Update", ButtonBar.ButtonData.OK_DONE);
-                d.getDialogPane().getButtonTypes().addAll(updateBtn, ButtonType.CANCEL);
-
-                GridPane grid = new GridPane();
-                grid.setHgap(10); grid.setVgap(10);
-                TextField phoneField = new TextField();
-                ComboBox<String> statusBox = new ComboBox<>();
-                statusBox.getItems().addAll("ACTIVE", "INACTIVE", "BLACKLISTED");
-                statusBox.setValue("ACTIVE");
-
-                grid.add(new Label("New Phone:"), 0, 0); grid.add(phoneField, 1, 0);
-                grid.add(new Label("Status:"), 0, 1);    grid.add(statusBox, 1, 1);
-                d.getDialogPane().setContent(grid);
-
-                d.setResultConverter(bt -> {
-                    if (bt == updateBtn) {
-                        Task<Void> task = new Task<>() {
-                            @Override
-                            protected Void call() throws Exception {
-                                String sql = "UPDATE customer SET phone = NVL(NULLIF(?,''), phone), status = ? WHERE customer_id = ?";
-                                try (Connection conn = Db.getConnection();
-                                     PreparedStatement ps = conn.prepareStatement(sql)) {
-                                    ps.setString(1, phoneField.getText().trim());
-                                    ps.setString(2, statusBox.getValue());
-                                    ps.setInt(3, cid);
-                                    ps.executeUpdate();
-                                }
-                                return null;
-                            }
-                        };
-                        task.setOnSucceeded(ev -> {
-                            TableViewBuilder.showInfo("Success", "Customer updated.");
-                            refreshTable();
-                        });
-                        task.setOnFailed(ev -> TableViewBuilder.showError("Update Failed", task.getException().getMessage()));
-                        new Thread(task).start();
-                    }
-                    return null;
-                });
-                d.showAndWait();
-            } catch (Exception e) {
-                TableViewBuilder.showError("Invalid Input", "Customer ID must be a number.");
+                int cId = Integer.parseInt(idStr.trim());
+                editCustomerById(cId);
+            } catch (NumberFormatException e) {
+                ToastManager.showError("Invalid customer ID entered.");
             }
         });
     }
 
+    private void editCustomerById(int cId) {
+        Dialog<Boolean> editDialog = new Dialog<>();
+        editDialog.setTitle("Edit Customer #" + cId);
+
+        VBox content = new VBox(16);
+        content.getStyleClass().add("card");
+        content.setPrefWidth(400);
+
+        TextField phoneField = new TextField();
+        FormField phoneForm = new FormField("New Phone Number", phoneField, true);
+
+        ComboBox<String> statusBox = new ComboBox<>();
+        statusBox.getItems().addAll("ACTIVE", "INACTIVE", "BLACKLISTED");
+        statusBox.setValue("ACTIVE");
+        statusBox.setMaxWidth(Double.MAX_VALUE);
+
+        HBox btnRow = new HBox(10);
+        btnRow.setAlignment(Pos.CENTER_RIGHT);
+
+        Button cancelBtn = new Button("Cancel");
+        cancelBtn.getStyleClass().add("btn-secondary");
+        cancelBtn.setOnAction(e -> editDialog.close());
+
+        Button saveBtn = new Button("Update Customer");
+        saveBtn.getStyleClass().add("btn-primary");
+
+        btnRow.getChildren().addAll(cancelBtn, saveBtn);
+
+        content.getChildren().addAll(
+            new Label("Edit Contact for Customer #" + cId),
+            phoneForm,
+            new Label("Status *"), statusBox,
+            btnRow
+        );
+
+        editDialog.getDialogPane().setContent(content);
+        editDialog.getDialogPane().getStylesheets().add(getClass().getResource("/css/isp-theme.css").toExternalForm());
+
+        saveBtn.setOnAction(e -> {
+            if (phoneField.getText().trim().isEmpty()) {
+                phoneForm.setError("Phone is required");
+                return;
+            }
+            saveBtn.setDisable(true);
+
+            Task<Void> task = new Task<>() {
+                @Override
+                protected Void call() throws Exception {
+                    String sql = "UPDATE customer SET phone = ?, status = ? WHERE customer_id = ?";
+                    try (Connection conn = Db.getConnection();
+                         PreparedStatement ps = conn.prepareStatement(sql)) {
+                        ps.setString(1, phoneField.getText().trim());
+                        ps.setString(2, statusBox.getValue());
+                        ps.setInt(3, cId);
+                        ps.executeUpdate();
+                    }
+                    return null;
+                }
+            };
+
+            task.setOnSucceeded(ev -> {
+                editDialog.close();
+                ToastManager.showSuccess("Customer #" + cId + " updated successfully!");
+                refreshTable();
+            });
+
+            task.setOnFailed(ev -> {
+                saveBtn.setDisable(false);
+                ToastManager.showError("Update error: " + TableViewBuilder.cleanOracleMessage(task.getException().getMessage()));
+            });
+
+            new Thread(task).start();
+        });
+
+        editDialog.showAndWait();
+    }
+
     private void openDeactivateDialog() {
-        TextInputDialog d = new TextInputDialog();
-        d.setTitle("Deactivate Customer");
-        d.setHeaderText("Soft-delete customer (marks status as INACTIVE)");
-        d.setContentText("Enter Customer ID:");
-        d.showAndWait().ifPresent(idStr -> {
+        if (selectedCustomerId != null) {
+            deactivateCustomerById(selectedCustomerId);
+            return;
+        }
+        TextInputDialog idDialog = new TextInputDialog();
+        idDialog.setTitle("Deactivate Customer");
+        idDialog.setHeaderText("Soft Deactivation");
+        idDialog.setContentText("Enter Customer ID to mark INACTIVE:");
+        idDialog.getDialogPane().getStylesheets().add(getClass().getResource("/css/isp-theme.css").toExternalForm());
+
+        idDialog.showAndWait().ifPresent(idStr -> {
             try {
-                int cid = Integer.parseInt(idStr.trim());
+                int cId = Integer.parseInt(idStr.trim());
+                deactivateCustomerById(cId);
+            } catch (NumberFormatException e) {
+                ToastManager.showError("Invalid Customer ID.");
+            }
+        });
+    }
+
+    private void deactivateCustomerById(int cId) {
+        ConfirmDialog confirm = new ConfirmDialog(
+            "Confirm Deactivation",
+            "Are you sure you want to deactivate Customer #" + cId + "? This marks status to INACTIVE without destroying past billing history.",
+            "Deactivate Account",
+            true
+        );
+
+        confirm.showAndWait().ifPresent(confirmed -> {
+            if (confirmed) {
                 Task<Void> task = new Task<>() {
                     @Override
                     protected Void call() throws Exception {
                         String sql = "UPDATE customer SET status = 'INACTIVE' WHERE customer_id = ?";
                         try (Connection conn = Db.getConnection();
                              PreparedStatement ps = conn.prepareStatement(sql)) {
-                            ps.setInt(1, cid);
-                            int rows = ps.executeUpdate();
-                            if (rows == 0) throw new Exception("Customer " + cid + " not found.");
+                            ps.setInt(1, cId);
+                            ps.executeUpdate();
                         }
                         return null;
                     }
                 };
-                task.setOnSucceeded(e -> {
-                    TableViewBuilder.showInfo("Deactivated", "Customer #" + cid + " marked INACTIVE.");
+                task.setOnSucceeded(ev -> {
+                    ToastManager.showSuccess("Customer #" + cId + " deactivated.");
                     refreshTable();
                 });
-                task.setOnFailed(e -> TableViewBuilder.showError("Deactivation Failed", task.getException().getMessage()));
+                task.setOnFailed(ev -> ToastManager.showError("Error: " + task.getException().getMessage()));
                 new Thread(task).start();
-            } catch (Exception e) {
-                TableViewBuilder.showError("Invalid Input", "Please provide a valid Customer ID number.");
             }
         });
     }

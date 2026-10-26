@@ -1,0 +1,500 @@
+/*
+ * ISP Management System - Modern Telecom / SaaS Design System
+ * Light Theme (default) & Dark Theme (.theme-dark)
+ */
+
+.root {
+    /* Color Palette - Light Default */
+    -color-primary: #2563EB;
+    -color-primary-dark: #1D4ED8;
+    -color-primary-light: #EFF6FF;
+    -color-accent: #06B6D4;
+    -color-accent-light: #ECFEFF;
+    -color-success: #16A34A;
+    -color-success-bg: #DCFCE7;
+    -color-warning: #F59E0B;
+    -color-warning-bg: #FEF3C7;
+    -color-danger: #DC2626;
+    -color-danger-bg: #FEE2E2;
+    -color-info: #0284C7;
+    -color-info-bg: #E0F2FE;
+
+    -color-bg: #F1F5F9;
+    -color-surface: #FFFFFF;
+    -color-surface-hover: #F8FAFC;
+    -color-sidebar: #0F172A;
+    -color-sidebar-hover: #1E293B;
+    -color-sidebar-active: #334155;
+    -color-text: #0F172A;
+    -color-text-secondary: #475569;
+    -color-muted: #64748B;
+    -color-border: #E2E8F0;
+    -color-divider: #F1F5F9;
+
+    -fx-font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, "Roboto", sans-serif;
+    -fx-font-size: 13px;
+    -fx-background-color: -color-bg;
+}
+
+/* Dark Theme Overrides */
+.theme-dark {
+    -color-primary: #3B82F6;
+    -color-primary-dark: #2563EB;
+    -color-primary-light: #1E293B;
+    -color-accent: #22D3EE;
+    -color-accent-light: #164E63;
+    -color-success: #22C55E;
+    -color-success-bg: #052E16;
+    -color-warning: #FBBF24;
+    -color-warning-bg: #451A03;
+    -color-danger: #EF4444;
+    -color-danger-bg: #450A0A;
+    -color-info: #38BDF8;
+    -color-info-bg: #082F49;
+
+    -color-bg: #0B0F19;
+    -color-surface: #131B2E;
+    -color-surface-hover: #1A253E;
+    -color-sidebar: #070B14;
+    -color-sidebar-hover: #0F172A;
+    -color-sidebar-active: #1E293B;
+    -color-text: #F8FAFC;
+    -color-text-secondary: #CBD5E1;
+    -color-muted: #94A3B8;
+    -color-border: #1E293B;
+    -color-divider: #1A2234;
+
+    -fx-background-color: -color-bg;
+}
+
+/* -------------------------------------------------------------
+   TYPOGRAPHY
+------------------------------------------------------------- */
+.page-title {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -color-text;
+}
+
+.page-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: -color-muted;
+}
+
+.section-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -color-text;
+}
+
+/* -------------------------------------------------------------
+   CARDS & CONTAINERS
+------------------------------------------------------------- */
+.card {
+    -fx-background-color: -color-surface;
+    -fx-background-radius: 12px;
+    -fx-border-color: -color-border;
+    -fx-border-width: 1px;
+    -fx-border-radius: 12px;
+    -fx-padding: 18px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.04), 8, 0, 0, 2);
+}
+
+.card-hover:hover {
+    -fx-effect: dropshadow(three-pass-box, rgba(37, 99, 235, 0.12), 12, 0, 0, 4);
+    -fx-border-color: -color-primary;
+}
+
+.toolbar-card {
+    -fx-background-color: -color-surface;
+    -fx-background-radius: 10px;
+    -fx-border-color: -color-border;
+    -fx-border-width: 1px;
+    -fx-border-radius: 10px;
+    -fx-padding: 12px 16px;
+}
+
+/* -------------------------------------------------------------
+   KPI TILES
+------------------------------------------------------------- */
+.kpi-tile {
+    -fx-background-color: -color-surface;
+    -fx-background-radius: 12px;
+    -fx-border-color: -color-border;
+    -fx-border-width: 1px;
+    -fx-border-radius: 12px;
+    -fx-padding: 16px;
+    -fx-min-width: 200px;
+    -fx-pref-width: 220px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.03), 6, 0, 0, 2);
+}
+
+.kpi-title {
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+    -fx-text-fill: -color-muted;
+}
+
+.kpi-value {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -color-text;
+}
+
+.kpi-subtitle {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-muted;
+}
+
+.kpi-icon-wrap {
+    -fx-background-radius: 10px;
+    -fx-padding: 8px;
+    -fx-alignment: center;
+}
+
+/* -------------------------------------------------------------
+   BUTTONS
+------------------------------------------------------------- */
+.button {
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+    -fx-background-radius: 8px;
+    -fx-padding: 8px 16px;
+    -fx-cursor: hand;
+    -fx-alignment: center;
+}
+
+.btn-primary {
+    -fx-background-color: -color-primary;
+    -fx-text-fill: #FFFFFF;
+}
+.btn-primary:hover {
+    -fx-background-color: -color-primary-dark;
+}
+.btn-primary:pressed {
+    -fx-background-color: #1E40AF;
+}
+
+.btn-secondary {
+    -fx-background-color: -color-surface;
+    -fx-text-fill: -color-text;
+    -fx-border-color: -color-border;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+}
+.btn-secondary:hover {
+    -fx-background-color: -color-surface-hover;
+    -fx-border-color: -color-muted;
+}
+
+.btn-danger {
+    -fx-background-color: -color-danger;
+    -fx-text-fill: #FFFFFF;
+}
+.btn-danger:hover {
+    -fx-background-color: #B91C1C;
+}
+
+.btn-success {
+    -fx-background-color: -color-success;
+    -fx-text-fill: #FFFFFF;
+}
+.btn-success:hover {
+    -fx-background-color: #15803D;
+}
+
+.btn-ghost {
+    -fx-background-color: transparent;
+    -fx-text-fill: -color-text-secondary;
+}
+.btn-ghost:hover {
+    -fx-background-color: rgba(148, 163, 184, 0.15);
+    -fx-text-fill: -color-text;
+}
+
+.btn-icon {
+    -fx-background-color: transparent;
+    -fx-background-radius: 6px;
+    -fx-padding: 6px;
+}
+.btn-icon:hover {
+    -fx-background-color: rgba(148, 163, 184, 0.2);
+}
+
+/* -------------------------------------------------------------
+   FORM INPUTS
+------------------------------------------------------------- */
+.text-field, .password-field, .combo-box {
+    -fx-background-color: -color-surface;
+    -fx-text-fill: -color-text;
+    -fx-border-color: -color-border;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 8px 12px;
+    -fx-font-size: 13px;
+    -fx-prompt-text-fill: -color-muted;
+}
+
+.text-field:focused, .password-field:focused, .combo-box:focused {
+    -fx-border-color: -color-primary;
+    -fx-effect: dropshadow(three-pass-box, rgba(37, 99, 235, 0.25), 6, 0, 0, 0);
+}
+
+.input-error {
+    -fx-border-color: -color-danger !important;
+}
+
+.form-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: 600;
+    -fx-text-fill: -color-text-secondary;
+}
+
+.form-error {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-danger;
+}
+
+.form-hint {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-muted;
+}
+
+/* -------------------------------------------------------------
+   BADGES & CHIPS
+------------------------------------------------------------- */
+.badge {
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-padding: 4px 12px;
+    -fx-background-radius: 12px;
+    -fx-alignment: center;
+}
+
+.badge-success {
+    -fx-background-color: -color-success-bg;
+    -fx-text-fill: -color-success;
+}
+
+.badge-warning {
+    -fx-background-color: -color-warning-bg;
+    -fx-text-fill: -color-warning;
+}
+
+.badge-danger {
+    -fx-background-color: -color-danger-bg;
+    -fx-text-fill: -color-danger;
+}
+
+.badge-info {
+    -fx-background-color: -color-info-bg;
+    -fx-text-fill: -color-info;
+}
+
+.badge-neutral {
+    -fx-background-color: -color-divider;
+    -fx-text-fill: -color-muted;
+}
+
+/* -------------------------------------------------------------
+   TABLE VIEW
+------------------------------------------------------------- */
+.table-view {
+    -fx-background-color: -color-surface;
+    -fx-background-radius: 10px;
+    -fx-border-color: -color-border;
+    -fx-border-width: 1px;
+    -fx-border-radius: 10px;
+    -fx-table-cell-border-color: transparent;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: -color-surface;
+    -fx-border-color: transparent transparent -color-border transparent;
+    -fx-border-width: 1px;
+    -fx-pref-height: 40px;
+    -fx-min-height: 40px;
+}
+
+.table-view .column-header {
+    -fx-background-color: transparent;
+    -fx-padding: 0 10px;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -color-muted;
+    -fx-pref-height: 40px;
+}
+
+.table-view .column-header .label {
+    -fx-alignment: CENTER-LEFT;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -color-text;
+}
+
+.table-view .table-row-cell {
+    -fx-background-color: -color-surface;
+    -fx-border-color: transparent transparent -color-border transparent;
+    -fx-border-width: 0 0 1px 0;
+    -fx-pref-height: 44px;
+    -fx-min-height: 44px;
+    -fx-cell-size: 44px;
+}
+
+.table-view .table-row-cell:odd {
+    -fx-background-color: -color-surface-hover;
+}
+
+.table-view .table-row-cell:hover {
+    -fx-background-color: -color-primary-light;
+    -fx-cursor: hand;
+}
+
+.table-view .table-row-cell:selected {
+    -fx-background-color: #DBEAFE;
+    -fx-table-cell-border-color: transparent;
+}
+
+.table-view .table-cell {
+    -fx-text-fill: -color-text;
+    -fx-font-size: 13px;
+    -fx-alignment: CENTER-LEFT;
+    -fx-padding: 0 10px;
+}
+
+/* -------------------------------------------------------------
+   SIDEBAR
+------------------------------------------------------------- */
+.sidebar {
+    -fx-background-color: -color-sidebar;
+}
+
+.sidebar-brand-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #FFFFFF;
+}
+
+.sidebar-brand-tag {
+    -fx-font-size: 11px;
+    -fx-text-fill: -color-accent;
+}
+
+.sidebar-item {
+    -fx-background-color: transparent;
+    -fx-text-fill: #94A3B8;
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+    -fx-padding: 10px 14px;
+    -fx-background-radius: 8px;
+    -fx-alignment: center-left;
+    -fx-cursor: hand;
+}
+
+.sidebar-item:hover {
+    -fx-background-color: -color-sidebar-hover;
+    -fx-text-fill: #FFFFFF;
+}
+
+.sidebar-item-active {
+    -fx-background-color: -color-sidebar-active;
+    -fx-text-fill: #FFFFFF;
+    -fx-border-color: transparent transparent transparent -color-accent;
+    -fx-border-width: 0 0 0 3px;
+}
+
+/* -------------------------------------------------------------
+   TOP HEADER BAR & STATUS BAR
+------------------------------------------------------------- */
+.header-bar {
+    -fx-background-color: -color-surface;
+    -fx-border-color: transparent transparent -color-border transparent;
+    -fx-border-width: 1px;
+    -fx-padding: 12px 24px;
+}
+
+.status-bar {
+    -fx-background-color: -color-surface;
+    -fx-border-color: -color-border transparent transparent transparent;
+    -fx-border-width: 1px;
+    -fx-padding: 6px 20px;
+    -fx-font-size: 12px;
+    -fx-text-fill: -color-muted;
+}
+
+/* -------------------------------------------------------------
+   TOAST NOTIFICATIONS
+------------------------------------------------------------- */
+.toast {
+    -fx-background-color: -color-surface;
+    -fx-background-radius: 10px;
+    -fx-border-width: 1px;
+    -fx-border-radius: 10px;
+    -fx-padding: 12px 18px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.15), 14, 0, 0, 4);
+    -fx-min-width: 280px;
+    -fx-max-width: 400px;
+}
+
+.toast-success {
+    -fx-border-color: -color-success;
+}
+
+.toast-error {
+    -fx-border-color: -color-danger;
+}
+
+.toast-info {
+    -fx-border-color: -color-info;
+}
+
+/* -------------------------------------------------------------
+   TAB PANE
+------------------------------------------------------------- */
+.tab-pane .tab-header-area .tab-header-background {
+    -fx-background-color: transparent;
+}
+
+.tab-pane .tab {
+    -fx-background-color: transparent;
+    -fx-background-radius: 8px 8px 0 0;
+    -fx-padding: 8px 18px;
+}
+
+.tab-pane .tab:selected {
+    -fx-background-color: -color-surface;
+    -fx-border-color: -color-primary transparent transparent transparent;
+    -fx-border-width: 3px 0 0 0;
+}
+
+.tab-pane .tab .tab-label {
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+    -fx-text-fill: -color-muted;
+}
+
+.tab-pane .tab:selected .tab-label {
+    -fx-text-fill: -color-primary;
+    -fx-font-weight: bold;
+}
+
+/* -------------------------------------------------------------
+   EMPTY STATE
+------------------------------------------------------------- */
+.empty-state {
+    -fx-alignment: center;
+    -fx-padding: 40px;
+    -fx-spacing: 12px;
+}
+
+.empty-state-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -color-text;
+}
+
+.empty-state-subtitle {
+    -fx-font-size: 13px;
+    -fx-text-fill: -color-muted;
+}
