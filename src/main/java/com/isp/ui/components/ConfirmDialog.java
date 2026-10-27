@@ -1,9 +1,13 @@
 package com.isp.ui.components;
 
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
@@ -14,6 +18,22 @@ public class ConfirmDialog extends Dialog<Boolean> {
     public ConfirmDialog(String title, String message, String confirmButtonText, boolean isDanger) {
         initModality(Modality.APPLICATION_MODAL);
         setTitle(title);
+        setHeaderText(null);
+
+        getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        Node defaultBar = getDialogPane().lookup(".button-bar");
+        if (defaultBar != null) {
+            defaultBar.setVisible(false);
+            defaultBar.setManaged(false);
+        }
+
+        getDialogPane().addEventHandler(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                setResult(false);
+                close();
+                event.consume();
+            }
+        });
 
         VBox content = new VBox(16);
         content.getStyleClass().add("card");

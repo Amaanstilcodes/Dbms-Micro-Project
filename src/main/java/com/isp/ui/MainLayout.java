@@ -11,7 +11,12 @@ import javafx.animation.Timeline;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.Parent;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import javafx.util.Duration;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -61,7 +66,7 @@ public class MainLayout extends BorderPane {
 
         String role = Session.getRole();
         if ("ADMIN".equals(role)) {
-            addNav(navItems, "fas-chart-pie", "Dashboard", () -> navigate("Dashboard", "System Overview", new DashboardScreen()));
+            addNav(navItems, "fas-chart-pie", "Dashboard", () -> navigate("Dashboard", "System Overview", new DashboardScreen(this)));
             addNav(navItems, "fas-users", "Customers", () -> navigate("Customers", "Subscriber Directory", new CustomersScreen()));
             addNav(navItems, "fas-layer-group", "Plans Catalog", () -> navigate("Plans", "Broadband & Fiber Tiers", new PlansScreen()));
             addNav(navItems, "fas-receipt", "Subscriptions", () -> navigate("Subscriptions", "Contracts & Installations", new SubscriptionsScreen()));
@@ -118,10 +123,26 @@ public class MainLayout extends BorderPane {
         Region headerSpacer = new Region();
         HBox.setHgrow(headerSpacer, Priority.ALWAYS);
 
-        // Search Field
+        // Search Field with live filter on active view
         TextField globalSearch = new TextField();
         globalSearch.setPromptText("Quick search (Ctrl+F)...");
         globalSearch.setPrefWidth(220);
+        globalSearch.textProperty().addListener((obs, oldVal, newVal) -> {
+            applyGlobalFilter(newVal);
+        });
+
+        // Accelerator for Ctrl+F
+        sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null) {
+                newScene.getAccelerators().put(
+                    new KeyCodeCombination(KeyCode.F, KeyCombination.CONTROL_DOWN),
+                    () -> {
+                        globalSearch.requestFocus();
+                        globalSearch.selectAll();
+                    }
+                );
+            }
+        });
 
         // Dark / Light Theme Toggle Button
         Button themeBtn = new Button();
@@ -208,9 +229,13 @@ public class MainLayout extends BorderPane {
         statusBar.getChildren().addAll(dbStatus, statusSpacer, sessionLbl, timeLbl);
         setBottom(statusBar);
 
-        // Default screen navigation
+        // Default screen navigation & active highlight
+        if (!navButtons.isEmpty()) {
+            navButtons.get(0).getStyleClass().add("sidebar-item-active");
+        }
+
         if ("ADMIN".equals(role)) {
-            navigate("Dashboard", "System Overview", new DashboardScreen());
+            navigate("Dashboard", "System Overview", new DashboardScreen(this));
         } else if ("BILLING_CLERK".equals(role)) {
             navigate("Billing", "Invoices & Payments", new BillingScreen());
         } else if ("TECHNICIAN".equals(role)) {
@@ -289,5 +314,30 @@ public class MainLayout extends BorderPane {
 
     public void setScreen(Node screen) {
         navigate("ISP Manager", "Telecom Dashboard", screen);
+    }
+
+    private void applyGlobalFilter(String query) {
+        if (contentArea.getChildren().isEmpty()) return;
+        Node currentScreen = contentArea.getChildren().get(0);
+        filterTablesRecursive(currentScreen, query);
+    }
+
+    private void filterTablesRecursive(Node node, String query) {
+        if (node instanceof TableViewBuilder.TableContainer tc) {
+            tc.filterText(query);
+            return;
+        }
+        if (node instanceof TabPane tp) {
+            Tab sel = tp.getSelectionModel().getSelectedItem();
+            if (sel != null && sel.getContent() != null) {
+                filterTablesRecursive(sel.getContent(), query);
+            }
+            return;
+        }
+        if (node instanceof Parent parent) {
+            for (Node child : parent.getChildrenUnmodifiable()) {
+                filterTablesRecursive(child, query);
+            }
+        }
     }
 }

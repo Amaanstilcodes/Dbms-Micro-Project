@@ -37,6 +37,7 @@ public class TableViewBuilder {
         private final Label footerLabel;
         private final ProgressIndicator spinner;
         private final StackPane stack;
+        private final List<ObservableList<String>> allRows = new ArrayList<>();
 
         public TableContainer(TableView<ObservableList<String>> tableView, Label footerLabel, ProgressIndicator spinner, StackPane stack) {
             this.tableView = tableView;
@@ -60,6 +61,36 @@ public class TableViewBuilder {
 
         public ProgressIndicator getSpinner() {
             return spinner;
+        }
+
+        public void setAllRows(List<ObservableList<String>> rows) {
+            allRows.clear();
+            allRows.addAll(rows);
+            filterText("");
+        }
+
+        public void filterText(String query) {
+            if (query == null || query.trim().isEmpty()) {
+                tableView.getItems().setAll(allRows);
+                int count = allRows.size();
+                footerLabel.setText("Showing " + count + (count == 1 ? " record" : " records"));
+            } else {
+                String qLower = query.toLowerCase().trim();
+                List<ObservableList<String>> filtered = new ArrayList<>();
+                for (ObservableList<String> row : allRows) {
+                    boolean match = false;
+                    for (String cell : row) {
+                        if (cell != null && cell.toLowerCase().contains(qLower)) {
+                            match = true;
+                            break;
+                        }
+                    }
+                    if (match) filtered.add(row);
+                }
+                tableView.getItems().setAll(filtered);
+                int count = filtered.size();
+                footerLabel.setText("Found " + count + " of " + allRows.size() + (count == 1 ? " record" : " records"));
+            }
         }
     }
 
@@ -134,9 +165,7 @@ public class TableViewBuilder {
                 tableView.getColumns().add(col);
             }
 
-            tableView.getItems().setAll(data.rows);
-            int rowCount = data.rows.size();
-            footerLabel.setText("Showing " + rowCount + (rowCount == 1 ? " record" : " records"));
+            container.setAllRows(data.rows);
 
             if (data.rows.isEmpty()) {
                 tableView.setPlaceholder(new EmptyState("No records found", "Try clearing search or filters.", "fas-inbox"));

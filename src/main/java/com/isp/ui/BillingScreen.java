@@ -9,7 +9,10 @@ import com.isp.ui.util.Formatters;
 import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import org.kordamp.ikonli.javafx.FontIcon;
 
@@ -149,6 +152,22 @@ public class BillingScreen extends VBox {
         LocalDate now = LocalDate.now();
         Dialog<Boolean> d = new Dialog<>();
         d.setTitle("Generate Monthly Invoices");
+        d.setHeaderText(null);
+
+        d.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        Node defaultBar = d.getDialogPane().lookup(".button-bar");
+        if (defaultBar != null) {
+            defaultBar.setVisible(false);
+            defaultBar.setManaged(false);
+        }
+
+        d.getDialogPane().addEventHandler(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                d.setResult(false);
+                d.close();
+                event.consume();
+            }
+        });
 
         VBox content = new VBox(16);
         content.getStyleClass().add("card");
@@ -172,7 +191,10 @@ public class BillingScreen extends VBox {
 
         Button cancelBtn = new Button("Cancel");
         cancelBtn.getStyleClass().add("btn-secondary");
-        cancelBtn.setOnAction(e -> d.close());
+        cancelBtn.setOnAction(e -> {
+            d.setResult(false);
+            d.close();
+        });
 
         Button runBtn = new Button("Generate Invoices");
         runBtn.getStyleClass().add("btn-primary");
@@ -264,6 +286,22 @@ public class BillingScreen extends VBox {
     private void openRecordPaymentDialog() {
         Dialog<Boolean> d = new Dialog<>();
         d.setTitle("Record Invoice Payment");
+        d.setHeaderText(null);
+
+        d.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        Node defaultBar = d.getDialogPane().lookup(".button-bar");
+        if (defaultBar != null) {
+            defaultBar.setVisible(false);
+            defaultBar.setManaged(false);
+        }
+
+        d.getDialogPane().addEventHandler(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                d.setResult(false);
+                d.close();
+                event.consume();
+            }
+        });
 
         VBox content = new VBox(14);
         content.getStyleClass().add("card");
@@ -348,7 +386,10 @@ public class BillingScreen extends VBox {
 
         Button cancelBtn = new Button("Cancel");
         cancelBtn.getStyleClass().add("btn-secondary");
-        cancelBtn.setOnAction(e -> d.close());
+        cancelBtn.setOnAction(e -> {
+            d.setResult(false);
+            d.close();
+        });
 
         Button submitBtn = new Button("Submit Payment");
         submitBtn.getStyleClass().add("btn-primary");

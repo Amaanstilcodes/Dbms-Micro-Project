@@ -8,7 +8,10 @@ import com.isp.ui.components.ToastManager;
 import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import org.kordamp.ikonli.javafx.FontIcon;
 
@@ -59,7 +62,7 @@ public class TicketsScreen extends VBox {
                 toggleViewBtn.setText("Switch to Table View");
                 toggleIcon.setIconLiteral("fas-table");
             } else {
-                toggleViewBtn.setText("Switch to Kanban Board");
+                toggleViewBtn.setText("Switch to Board View");
                 toggleIcon.setIconLiteral("fas-columns");
             }
             refreshView();
@@ -126,21 +129,34 @@ public class TicketsScreen extends VBox {
         spinner.setMaxSize(36, 36);
         viewContainer.getChildren().setAll(spinner);
 
+        final String activeFilter = filterBox.getValue();
+
         Task<List<TicketCardModel>> task = new Task<>() {
             @Override
             protected List<TicketCardModel> call() throws Exception {
                 List<TicketCardModel> list = new ArrayList<>();
-                String sql = "SELECT t.ticket_id, c.first_name || ' ' || c.last_name, t.category, t.priority, t.subject, t.status, NVL(tech.first_name, 'Unassigned') " +
-                             "FROM support_ticket t JOIN customer c ON t.customer_id = c.customer_id " +
-                             "LEFT JOIN technician tech ON t.assigned_to = tech.technician_id ORDER BY t.ticket_id DESC";
+                StringBuilder sql = new StringBuilder(
+                    "SELECT t.ticket_id, c.first_name || ' ' || c.last_name, t.category, t.priority, t.subject, t.status, NVL(tech.first_name, 'Unassigned') " +
+                    "FROM support_ticket t JOIN customer c ON t.customer_id = c.customer_id " +
+                    "LEFT JOIN technician tech ON t.assigned_to = tech.technician_id "
+                );
+                if (!"ALL".equals(activeFilter)) {
+                    sql.append("WHERE t.status = ? ");
+                }
+                sql.append("ORDER BY t.ticket_id DESC");
+
                 try (Connection conn = Db.getConnection();
-                     Statement st = conn.createStatement();
-                     ResultSet rs = st.executeQuery(sql)) {
-                    while (rs.next()) {
-                        list.add(new TicketCardModel(
-                            rs.getInt(1), rs.getString(2), rs.getString(3),
-                            rs.getString(4), rs.getString(5), rs.getString(6), rs.getString(7)
-                        ));
+                     PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                    if (!"ALL".equals(activeFilter)) {
+                        ps.setString(1, activeFilter);
+                    }
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            list.add(new TicketCardModel(
+                                rs.getInt(1), rs.getString(2), rs.getString(3),
+                                rs.getString(4), rs.getString(5), rs.getString(6), rs.getString(7)
+                            ));
+                        }
                     }
                 }
                 return list;
@@ -166,7 +182,18 @@ public class TicketsScreen extends VBox {
                 else closedCol.getChildren().add(card);
             }
 
-            board.getChildren().addAll(openCol, inProgCol, resolvedCol, closedCol);
+            if ("ALL".equals(activeFilter)) {
+                board.getChildren().addAll(openCol, inProgCol, resolvedCol, closedCol);
+            } else if ("OPEN".equals(activeFilter)) {
+                board.getChildren().add(openCol);
+            } else if ("IN_PROGRESS".equals(activeFilter)) {
+                board.getChildren().add(inProgCol);
+            } else if ("RESOLVED".equals(activeFilter)) {
+                board.getChildren().add(resolvedCol);
+            } else {
+                board.getChildren().add(closedCol);
+            }
+
             ScrollPane scroll = new ScrollPane(board);
             scroll.setFitToHeight(true);
             scroll.setStyle("-fx-background: transparent; -fx-background-color: transparent;");
@@ -234,13 +261,109 @@ public class TicketsScreen extends VBox {
     private void openTicketDetail(int ticketId) {
         Dialog<Boolean> d = new Dialog<>();
         d.setTitle("Ticket #" + ticketId + " Timeline & Details");
+        d.setHeaderText(null);
+
+        // Required for window close (X) to work
+        d.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        Node defaultBar = d.getDialogPane().lookup(".button-bar");
+        if (defaultBar != null) {
+            defaultBar.setVisible(false);
+            defaultBar.setManaged(false);
+        }
+
+        d.getDialogPane().addEventHandler(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                d.setResult(false);
+                d.close();
+                event.consume();
+            }
+        });
 
         VBox content = new VBox(14);
         content.getStyleClass().add("card");
-        content.setPrefWidth(480);
+        content.setPrefWidth(500);
 
-        Label title = new Label("Ticket #" + ticketId + " Activity Timeline");
+        Label title = new Label("Ticket #" + ticketId + " Details & Quick Status Update");
         title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
+
+        // Quick status and priority changer
+        HBox quickEditRow = new HBox(12);
+        quickEditRow.setAlignment(Pos.CENTER_LEFT);
+        quickEditRow.setStyle("-fx-background-color: -color-surface-hover; -fx-padding: 10; -fx-background-radius: 8;");
+
+        ComboBox<String> statusDropdown = new ComboBox<>();
+        statusDropdown.getItems().addAll("OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED");
+        statusDropdown.setValue("IN_PROGRESS");
+
+        ComboBox<String> priorityDropdown = new ComboBox<>();
+        priorityDropdown.getItems().addAll("LOW", "MEDIUM", "HIGH", "CRITICAL");
+        priorityDropdown.setValue("MEDIUM");
+
+        Button updateStateBtn = new Button("Apply Status/Priority");
+        updateStateBtn.getStyleClass().add("btn-secondary");
+
+        quickEditRow.getChildren().addAll(
+            new Label("Status:"), statusDropdown,
+            new Label("Priority:"), priorityDropdown,
+            updateStateBtn
+        );
+
+        // Load existing ticket status & priority
+        Task<String[]> loadMetaTask = new Task<>() {
+            @Override
+            protected String[] call() throws Exception {
+                String q = "SELECT status, priority, subject FROM support_ticket WHERE ticket_id = ?";
+                try (Connection conn = Db.getConnection();
+                     PreparedStatement ps = conn.prepareStatement(q)) {
+                    ps.setInt(1, ticketId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            return new String[]{rs.getString(1), rs.getString(2), rs.getString(3)};
+                        }
+                    }
+                }
+                return null;
+            }
+        };
+        loadMetaTask.setOnSucceeded(ev -> {
+            String[] meta = loadMetaTask.getValue();
+            if (meta != null) {
+                statusDropdown.setValue(meta[0]);
+                priorityDropdown.setValue(meta[1]);
+                title.setText("Ticket #" + ticketId + ": " + meta[2]);
+            }
+        });
+        new Thread(loadMetaTask).start();
+
+        updateStateBtn.setOnAction(e -> {
+            String newSt = statusDropdown.getValue();
+            String newPr = priorityDropdown.getValue();
+            updateStateBtn.setDisable(true);
+            Task<Void> updateTask = new Task<>() {
+                @Override
+                protected Void call() throws Exception {
+                    String update = "UPDATE support_ticket SET status = ?, priority = ?, updated_at = SYSDATE WHERE ticket_id = ?";
+                    try (Connection conn = Db.getConnection();
+                         PreparedStatement ps = conn.prepareStatement(update)) {
+                        ps.setString(1, newSt);
+                        ps.setString(2, newPr);
+                        ps.setInt(3, ticketId);
+                        ps.executeUpdate();
+                    }
+                    return null;
+                }
+            };
+            updateTask.setOnSucceeded(ev -> {
+                updateStateBtn.setDisable(false);
+                ToastManager.showSuccess("Ticket #" + ticketId + " updated to " + newSt + " / " + newPr);
+                refreshView();
+            });
+            updateTask.setOnFailed(ev -> {
+                updateStateBtn.setDisable(false);
+                ToastManager.showError("Update error: " + updateTask.getException().getMessage());
+            });
+            new Thread(updateTask).start();
+        });
 
         VBox timelineBox = new VBox(8);
         timelineBox.setStyle("-fx-background-color: -color-surface-hover; -fx-padding: 12; -fx-background-radius: 8; -fx-max-height: 200px;");
@@ -295,20 +418,29 @@ public class TicketsScreen extends VBox {
         btnRow.setAlignment(Pos.CENTER_RIGHT);
         Button closeBtn = new Button("Close");
         closeBtn.getStyleClass().add("btn-secondary");
-        closeBtn.setOnAction(e -> d.close());
+        closeBtn.setOnAction(e -> {
+            d.setResult(false);
+            d.close();
+        });
 
-        Button postBtn = new Button("Post Update");
+        Button postBtn = new Button("Post Comment");
         postBtn.getStyleClass().add("btn-primary");
 
         btnRow.getChildren().addAll(closeBtn, postBtn);
-        content.getChildren().addAll(title, scroll, new Label("Add Ticket Comment:"), addRow, btnRow);
+        content.getChildren().addAll(title, quickEditRow, new Label("Timeline Commentary:"), scroll, new Label("Add Ticket Comment:"), addRow, btnRow);
 
         d.getDialogPane().setContent(content);
-        d.getDialogPane().getStylesheets().add(getClass().getResource("/css/isp-theme.css").toExternalForm());
+        var css = getClass().getResource("/css/isp-theme.css");
+        if (css != null) {
+            d.getDialogPane().getStylesheets().add(css.toExternalForm());
+        }
 
         postBtn.setOnAction(e -> {
             String note = commentInput.getText().trim();
-            if (note.isEmpty()) return;
+            if (note.isEmpty()) {
+                ToastManager.showError("Please enter a note before posting.");
+                return;
+            }
             postBtn.setDisable(true);
 
             Task<Void> postTask = new Task<>() {
@@ -322,7 +454,7 @@ public class TicketsScreen extends VBox {
                         ps.setString(3, newStatusBox.getValue());
                         ps.executeUpdate();
                     }
-                    String updateTicket = "UPDATE support_ticket SET status = ? WHERE ticket_id = ?";
+                    String updateTicket = "UPDATE support_ticket SET status = ?, updated_at = SYSDATE WHERE ticket_id = ?";
                     try (Connection conn = Db.getConnection();
                          PreparedStatement ps = conn.prepareStatement(updateTicket)) {
                         ps.setString(1, newStatusBox.getValue());
@@ -333,6 +465,7 @@ public class TicketsScreen extends VBox {
                 }
             };
             postTask.setOnSucceeded(ev -> {
+                d.setResult(true);
                 d.close();
                 ToastManager.showSuccess("Timeline comment logged!");
                 refreshView();
@@ -350,16 +483,58 @@ public class TicketsScreen extends VBox {
     private void openNewTicketDialog() {
         Dialog<Boolean> d = new Dialog<>();
         d.setTitle("Open Support Ticket");
+        d.setHeaderText(null);
+
+        // Required for window close (X) to work
+        d.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        Node defaultBar = d.getDialogPane().lookup(".button-bar");
+        if (defaultBar != null) {
+            defaultBar.setVisible(false);
+            defaultBar.setManaged(false);
+        }
+
+        d.getDialogPane().addEventHandler(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                d.setResult(false);
+                d.close();
+                event.consume();
+            }
+        });
 
         VBox content = new VBox(14);
         content.getStyleClass().add("card");
-        content.setPrefWidth(420);
+        content.setPrefWidth(450);
 
         Label title = new Label("Create Incident / Inquiry Ticket");
         title.setStyle("-fx-font-size: 16px; -fx-font-weight: bold;");
 
-        TextField custId = new TextField("1");
-        FormField custField = new FormField("Customer ID", custId, true);
+        // Customer Dropdown from DB
+        ComboBox<CustomerItem> customerBox = new ComboBox<>();
+        customerBox.setMaxWidth(Double.MAX_VALUE);
+        customerBox.setPromptText("Loading active customers...");
+
+        Task<List<CustomerItem>> loadCustTask = new Task<>() {
+            @Override
+            protected List<CustomerItem> call() throws Exception {
+                List<CustomerItem> list = new ArrayList<>();
+                String sql = "SELECT customer_id, first_name || ' ' || last_name || ' (' || email || ')' FROM customer WHERE status = 'ACTIVE' ORDER BY first_name";
+                try (Connection conn = Db.getConnection();
+                     Statement st = conn.createStatement();
+                     ResultSet rs = st.executeQuery(sql)) {
+                    while (rs.next()) {
+                        list.add(new CustomerItem(rs.getInt(1), rs.getString(2)));
+                    }
+                }
+                return list;
+            }
+        };
+        loadCustTask.setOnSucceeded(ev -> {
+            customerBox.getItems().setAll(loadCustTask.getValue());
+            if (!customerBox.getItems().isEmpty()) {
+                customerBox.setValue(customerBox.getItems().get(0));
+            }
+        });
+        new Thread(loadCustTask).start();
 
         ComboBox<String> catBox = new ComboBox<>();
         catBox.getItems().addAll("CONNECTIVITY", "BILLING", "EQUIPMENT", "SPEED", "OTHER");
@@ -374,18 +549,29 @@ public class TicketsScreen extends VBox {
         TextField subj = new TextField();
         FormField subjField = new FormField("Subject Summary", subj, true);
 
+        // Live validation on text changes
+        subj.textProperty().addListener((obs, ov, nv) -> {
+            if (nv != null && !nv.trim().isEmpty()) {
+                subjField.clearError();
+            }
+        });
+
         HBox btnRow = new HBox(10);
         btnRow.setAlignment(Pos.CENTER_RIGHT);
         Button cancel = new Button("Cancel");
         cancel.getStyleClass().add("btn-secondary");
-        cancel.setOnAction(e -> d.close());
+        cancel.setOnAction(e -> {
+            d.setResult(false);
+            d.close();
+        });
 
         Button save = new Button("Create Ticket");
         save.getStyleClass().add("btn-primary");
         btnRow.getChildren().addAll(cancel, save);
 
         content.getChildren().addAll(
-            title, custField,
+            title,
+            new Label("Select Customer *"), customerBox,
             new Label("Category *"), catBox,
             new Label("Priority *"), prioBox,
             subjField,
@@ -393,13 +579,26 @@ public class TicketsScreen extends VBox {
         );
 
         d.getDialogPane().setContent(content);
-        d.getDialogPane().getStylesheets().add(getClass().getResource("/css/isp-theme.css").toExternalForm());
+        var css = getClass().getResource("/css/isp-theme.css");
+        if (css != null) {
+            d.getDialogPane().getStylesheets().add(css.toExternalForm());
+        }
 
         save.setOnAction(e -> {
-            if (subj.getText().trim().isEmpty()) {
-                subjField.setError("Subject summary is required");
+            CustomerItem selectedCust = customerBox.getValue();
+            if (selectedCust == null) {
+                ToastManager.showError("Please select a customer.");
                 return;
             }
+
+            String subjectText = subj.getText();
+            if (subjectText == null || subjectText.trim().isEmpty()) {
+                subjField.setError("Subject summary is required");
+                subj.requestFocus();
+                return;
+            }
+            subjField.clearError();
+
             save.setDisable(true);
             Task<Void> t = new Task<>() {
                 @Override
@@ -407,18 +606,19 @@ public class TicketsScreen extends VBox {
                     String insert = "INSERT INTO support_ticket (customer_id, category, priority, subject, status, created_at) VALUES (?, ?, ?, ?, 'OPEN', SYSDATE)";
                     try (Connection conn = Db.getConnection();
                          PreparedStatement ps = conn.prepareStatement(insert)) {
-                        ps.setInt(1, Integer.parseInt(custId.getText().trim()));
+                        ps.setInt(1, selectedCust.id());
                         ps.setString(2, catBox.getValue());
                         ps.setString(3, prioBox.getValue());
-                        ps.setString(4, subj.getText().trim());
+                        ps.setString(4, subjectText.trim());
                         ps.executeUpdate();
                     }
                     return null;
                 }
             };
             t.setOnSucceeded(ev -> {
+                d.setResult(true);
                 d.close();
-                ToastManager.showSuccess("Support ticket opened!");
+                ToastManager.showSuccess("Support ticket opened successfully!");
                 refreshView();
             });
             t.setOnFailed(ev -> {
@@ -429,6 +629,13 @@ public class TicketsScreen extends VBox {
         });
 
         d.showAndWait();
+    }
+
+    private record CustomerItem(int id, String name) {
+        @Override
+        public String toString() {
+            return name;
+        }
     }
 
     private static class TicketCardModel {

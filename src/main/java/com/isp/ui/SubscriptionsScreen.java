@@ -1,14 +1,19 @@
 package com.isp.ui;
 
 import com.isp.Db;
+import com.isp.ui.components.ConfirmDialog;
 import com.isp.ui.components.PlanCard;
 import com.isp.ui.components.StepIndicator;
 import com.isp.ui.components.ToastManager;
 import com.isp.ui.util.Formatters;
+import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import org.kordamp.ikonli.javafx.FontIcon;
 
@@ -18,9 +23,13 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class SubscriptionsScreen extends VBox {
     private final StackPane tableContainer;
+    private Integer selectedSubscriptionId = null;
+    private String selectedStatus = null;
+    private Button toggleStatusBtn;
 
     public SubscriptionsScreen() {
         setSpacing(16);
@@ -39,11 +48,16 @@ public class SubscriptionsScreen extends VBox {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
+        toggleStatusBtn = new Button("Terminate Subscription");
+        toggleStatusBtn.getStyleClass().add("btn-danger");
+        toggleStatusBtn.setDisable(true);
+        toggleStatusBtn.setOnAction(e -> handleToggleStatus());
+
         Button newSubBtn = new Button("+ New Subscription Wizard");
         newSubBtn.getStyleClass().add("btn-primary");
         newSubBtn.setOnAction(e -> openWizardDialog());
 
-        header.getChildren().addAll(titleBox, spacer, newSubBtn);
+        header.getChildren().addAll(titleBox, spacer, toggleStatusBtn, newSubBtn);
 
         VBox tableCard = new VBox();
         tableCard.getStyleClass().add("card");
@@ -59,10 +73,72 @@ public class SubscriptionsScreen extends VBox {
         refreshTable();
     }
 
+    private void handleToggleStatus() {
+        if (selectedSubscriptionId == null) return;
+        boolean isTerminated = "TERMINATED".equalsIgnoreCase(selectedStatus);
+        String actionName = isTerminated ? "Reactivate" : "Terminate";
+        ConfirmDialog confirm = new ConfirmDialog(
+            "Confirm " + actionName,
+            "Are you sure you want to " + actionName.toLowerCase() + " Subscription #" + selectedSubscriptionId + "?",
+            actionName,
+            !isTerminated
+        );
+        confirm.showAndWait().ifPresent(confirmed -> {
+            if (confirmed) {
+                String targetStatus = isTerminated ? "ACTIVE" : "TERMINATED";
+                Task<Void> task = new Task<>() {
+                    @Override
+                    protected Void call() throws Exception {
+                        String sql = "UPDATE subscription SET status = ?, updated_at = SYSDATE WHERE subscription_id = ?";
+                        try (Connection conn = Db.getConnection();
+                             PreparedStatement ps = conn.prepareStatement(sql)) {
+                            ps.setString(1, targetStatus);
+                            ps.setInt(2, selectedSubscriptionId);
+                            ps.executeUpdate();
+                        }
+                        return null;
+                    }
+                };
+                task.setOnSucceeded(ev -> {
+                    ToastManager.showSuccess("Subscription #" + selectedSubscriptionId + " marked " + targetStatus + ".");
+                    refreshTable();
+                });
+                task.setOnFailed(ev -> ToastManager.showError("Update error: " + task.getException().getMessage()));
+                new Thread(task).start();
+            }
+        });
+    }
+
     private void refreshTable() {
         String sql = "SELECT subscription_id, customer_name, plan_name, monthly_price, area_name, city, start_date, subscription_status FROM v_active_subscriptions ORDER BY subscription_id DESC";
+        Consumer<ObservableList<String>> onSelect = row -> {
+            boolean hasSel = row != null;
+            toggleStatusBtn.setDisable(!hasSel);
+            if (hasSel) {
+                selectedSubscriptionId = Integer.parseInt(row.get(0));
+                selectedStatus = row.get(7);
+                if ("TERMINATED".equalsIgnoreCase(selectedStatus)) {
+                    toggleStatusBtn.setText("Reactivate Subscription");
+                    toggleStatusBtn.getStyleClass().removeAll("btn-danger");
+                    if (!toggleStatusBtn.getStyleClass().contains("btn-secondary")) {
+                        toggleStatusBtn.getStyleClass().add("btn-secondary");
+                    }
+                } else {
+                    toggleStatusBtn.setText("Terminate Subscription");
+                    toggleStatusBtn.getStyleClass().removeAll("btn-secondary");
+                    if (!toggleStatusBtn.getStyleClass().contains("btn-danger")) {
+                        toggleStatusBtn.getStyleClass().add("btn-danger");
+                    }
+                }
+            } else {
+                selectedSubscriptionId = null;
+                selectedStatus = null;
+            }
+        };
+
         TableViewBuilder.TableContainer table = TableViewBuilder.buildAsyncTable(
             row -> ToastManager.showInfo("Subscription #" + row.get(0) + " (" + row.get(1) + " - " + row.get(2) + ")"),
+            onSelect,
             sql
         );
         tableContainer.getChildren().setAll(table);
@@ -72,6 +148,21 @@ public class SubscriptionsScreen extends VBox {
         Dialog<Boolean> dialog = new Dialog<>();
         dialog.setTitle("Subscription Provisioning Wizard");
         dialog.setHeaderText(null);
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        // Hide standard button bar because custom buttons (Cancel, Back, Next) are inside wizardLayout
+        Node buttonBar = dialog.getDialogPane().lookup(".button-bar");
+        if (buttonBar != null) {
+            buttonBar.setVisible(false);
+            buttonBar.setManaged(false);
+        }
+
+        dialog.getDialogPane().addEventHandler(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                dialog.setResult(false);
+                dialog.close();
+                event.consume();
+            }
+        });
 
         VBox wizardLayout = new VBox(16);
         wizardLayout.getStyleClass().add("card");
@@ -136,7 +227,10 @@ public class SubscriptionsScreen extends VBox {
 
         Button cancelBtn = new Button("Cancel");
         cancelBtn.getStyleClass().add("btn-secondary");
-        cancelBtn.setOnAction(e -> dialog.close());
+        cancelBtn.setOnAction(e -> {
+            dialog.setResult(false);
+            dialog.close();
+        });
 
         Button backBtn = new Button("Back");
         backBtn.getStyleClass().add("btn-secondary");
@@ -259,6 +353,7 @@ public class SubscriptionsScreen extends VBox {
                 };
 
                 subTask.setOnSucceeded(ev -> {
+                    dialog.setResult(true);
                     dialog.close();
                     ToastManager.showSuccess("Subscription activated successfully!");
                     refreshTable();

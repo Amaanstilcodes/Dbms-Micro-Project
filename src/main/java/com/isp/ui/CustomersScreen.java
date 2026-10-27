@@ -9,7 +9,10 @@ import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import javafx.util.Duration;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -172,6 +175,21 @@ public class CustomersScreen extends VBox {
         dialog.setTitle("Add New Customer");
         dialog.setHeaderText(null);
 
+        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        Node defaultBar = dialog.getDialogPane().lookup(".button-bar");
+        if (defaultBar != null) {
+            defaultBar.setVisible(false);
+            defaultBar.setManaged(false);
+        }
+
+        dialog.getDialogPane().addEventHandler(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                dialog.setResult(false);
+                dialog.close();
+                event.consume();
+            }
+        });
+
         VBox content = new VBox(16);
         content.getStyleClass().add("card");
         content.setPrefWidth(450);
@@ -207,7 +225,10 @@ public class CustomersScreen extends VBox {
 
         Button cancelBtn = new Button("Cancel");
         cancelBtn.getStyleClass().add("btn-secondary");
-        cancelBtn.setOnAction(e -> dialog.setResult(false));
+        cancelBtn.setOnAction(e -> {
+            dialog.setResult(false);
+            dialog.close();
+        });
 
         Button saveBtn = new Button("Create Customer");
         saveBtn.getStyleClass().add("btn-primary");
@@ -298,6 +319,22 @@ public class CustomersScreen extends VBox {
     private void editCustomerById(int cId) {
         Dialog<Boolean> editDialog = new Dialog<>();
         editDialog.setTitle("Edit Customer #" + cId);
+        editDialog.setHeaderText(null);
+
+        editDialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
+        Node defaultBar = editDialog.getDialogPane().lookup(".button-bar");
+        if (defaultBar != null) {
+            defaultBar.setVisible(false);
+            defaultBar.setManaged(false);
+        }
+
+        editDialog.getDialogPane().addEventHandler(KeyEvent.KEY_PRESSED, event -> {
+            if (event.getCode() == KeyCode.ESCAPE) {
+                editDialog.setResult(false);
+                editDialog.close();
+                event.consume();
+            }
+        });
 
         VBox content = new VBox(16);
         content.getStyleClass().add("card");
@@ -316,7 +353,10 @@ public class CustomersScreen extends VBox {
 
         Button cancelBtn = new Button("Cancel");
         cancelBtn.getStyleClass().add("btn-secondary");
-        cancelBtn.setOnAction(e -> editDialog.close());
+        cancelBtn.setOnAction(e -> {
+            editDialog.setResult(false);
+            editDialog.close();
+        });
 
         Button saveBtn = new Button("Update Customer");
         saveBtn.getStyleClass().add("btn-primary");

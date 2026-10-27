@@ -24,8 +24,14 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 
 public class DashboardScreen extends ScrollPane {
+    private final MainLayout parentLayout;
 
     public DashboardScreen() {
+        this(null);
+    }
+
+    public DashboardScreen(MainLayout parentLayout) {
+        this.parentLayout = parentLayout;
         setFitToWidth(true);
         setStyle("-fx-background: transparent; -fx-background-color: transparent;");
 
@@ -146,6 +152,38 @@ public class DashboardScreen extends ScrollPane {
         actionsRow.getChildren().addAll(addCustBtn, recordPayBtn, genInvBtn, newTicketBtn);
         quickActionsCard.getChildren().addAll(qaTitle, actionsRow);
 
+        addCustBtn.setOnAction(e -> {
+            if (parentLayout != null) {
+                parentLayout.navigate("Customers", "Subscriber Directory", new CustomersScreen());
+            } else {
+                ToastManager.showInfo("Opening Customers Directory...");
+            }
+        });
+
+        recordPayBtn.setOnAction(e -> {
+            if (parentLayout != null) {
+                parentLayout.navigate("Billing", "Invoices & Revenue Engine", new BillingScreen());
+            } else {
+                ToastManager.showInfo("Opening Billing & Payments...");
+            }
+        });
+
+        genInvBtn.setOnAction(e -> {
+            if (parentLayout != null) {
+                parentLayout.navigate("Billing", "Invoices & Revenue Engine", new BillingScreen());
+            } else {
+                ToastManager.showInfo("Opening Invoicing Engine...");
+            }
+        });
+
+        newTicketBtn.setOnAction(e -> {
+            if (parentLayout != null) {
+                parentLayout.navigate("Support Tickets", "Customer Inquiries & SLA", new TicketsScreen());
+            } else {
+                ToastManager.showInfo("Opening Support Tickets...");
+            }
+        });
+
         // Overdue Invoices Quick View Table
         VBox overdueCard = new VBox(12);
         overdueCard.getStyleClass().add("card");
@@ -165,7 +203,13 @@ public class DashboardScreen extends ScrollPane {
         FontIcon arrowIcon = new FontIcon("fas-arrow-right");
         arrowIcon.setIconSize(12);
         viewAllOverdueBtn.setGraphic(arrowIcon);
-        viewAllOverdueBtn.setOnAction(e -> ToastManager.showInfo("Navigate to Billing tab to view all overdue accounts."));
+        viewAllOverdueBtn.setOnAction(e -> {
+            if (parentLayout != null) {
+                parentLayout.navigate("Billing", "Invoices & Revenue Engine", new BillingScreen());
+            } else {
+                ToastManager.showInfo("Opening Billing...");
+            }
+        });
 
         overdueHeader.getChildren().addAll(overdueTitle, overdueSpacer, viewAllOverdueBtn);
 

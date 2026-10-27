@@ -42,7 +42,6 @@ public class ReportsScreen extends VBox {
         FontIcon exportIcon = new FontIcon("fas-file-csv");
         exportIcon.setIconSize(13);
         exportBtn.setGraphic(exportIcon);
-        exportBtn.setOnAction(e -> ToastManager.showInfo("Right-click any row to copy data, or export to CSV."));
 
         header.getChildren().addAll(titleBox, spacer, exportBtn);
 
@@ -139,6 +138,26 @@ public class ReportsScreen extends VBox {
         activeSubTab.setContent(subBox);
 
         tabPane.getTabs().addAll(revTab, overdueTab, balTab, workTab, usageTab, activeSubTab);
+
+        exportBtn.setOnAction(e -> {
+            Tab selectedTab = tabPane.getSelectionModel().getSelectedItem();
+            if (selectedTab != null) {
+                TableViewBuilder.TableContainer tc = null;
+                if (selectedTab == revTab) tc = revTable;
+                else if (selectedTab == overdueTab) tc = overdueTable;
+                else if (selectedTab == balTab) tc = balTable;
+                else if (selectedTab == workTab) tc = workTable;
+                else if (selectedTab == usageTab) tc = usageTable;
+                else if (selectedTab == activeSubTab) tc = activeSubTable;
+
+                if (tc != null && tc.getTableView() != null) {
+                    String cleanName = selectedTab.getText().replaceAll("[^a-zA-Z0-9_]", "_");
+                    TableViewBuilder.exportToCSV(tc.getTableView(), cleanName);
+                } else {
+                    ToastManager.showInfo("No table data ready to export.");
+                }
+            }
+        });
 
         getChildren().addAll(header, tabPane);
     }
