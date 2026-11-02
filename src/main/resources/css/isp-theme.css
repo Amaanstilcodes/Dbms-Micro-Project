@@ -124,15 +124,20 @@
     -fx-border-width: 1px;
     -fx-border-radius: 12px;
     -fx-padding: 16px;
-    -fx-min-width: 200px;
-    -fx-pref-width: 220px;
+    -fx-min-width: 140px;
+    -fx-pref-width: -1;
     -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.03), 6, 0, 0, 2);
 }
 
 .kpi-title {
-    -fx-font-size: 12px;
+    -fx-font-size: 11px;
     -fx-font-weight: 600;
     -fx-text-fill: -color-muted;
+    -fx-wrap-text: true;
+}
+
+.ikonli-font-icon {
+    -fx-font-family: "FontAwesome 5 Free Solid", "FontAwesome 5 Free", "FontAwesome 5 Brands", "Font Awesome 5 Free", "Font Awesome 5 Brands", "FontAwesome";
 }
 
 .kpi-value {

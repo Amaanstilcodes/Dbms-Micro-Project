@@ -39,6 +39,7 @@ public class StatusBadge extends Label {
             case "SCHEDULED":
             case "WARNING":
             case "BUSY":
+            case "NEAR_CAP":
                 getStyleClass().add("badge-warning");
                 break;
 
@@ -47,6 +48,7 @@ public class StatusBadge extends Label {
             case "TERMINATED":
             case "CRITICAL":
             case "EXCEEDED":
+            case "CAP_EXCEEDED":
             case "OVERLOADED":
             case "CANCELLED":
             case "FAULTY":
@@ -62,6 +64,7 @@ public class StatusBadge extends Label {
                 getStyleClass().add("badge-info");
                 break;
 
+            case "UNLIMITED":
             default:
                 getStyleClass().add("badge-neutral");
                 break;

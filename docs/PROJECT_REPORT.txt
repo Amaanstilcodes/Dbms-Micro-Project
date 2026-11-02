@@ -1,0 +1,136 @@
+================================================================================
+                    ISP MANAGEMENT SYSTEM - PROJECT REPORT
+                         ("ISP Orbit" - Oracle Edition)
+================================================================================
+
+1. PROJECT OVERVIEW
+--------------------------------------------------------------------------------
+Project Name        : ISP Orbit - Internet Service Provider Management System
+Domain              : Academic DBMS / Enterprise Desktop Application
+Target Platform     : Windows / Linux / macOS (Desktop Application)
+Primary Purpose     : End-to-end management platform for an Internet Service
+                      Provider (broadband/fiber) handling customer onboarding,
+                      broadband plan management, lifecycle subscriptions,
+                      automated billing/invoicing, payment ledgers, technician
+                      field dispatches, customer service tickets, and executive
+                      analytical reporting.
+Architecture        : 3-Tier Layered Desktop Architecture:
+                      JavaFX UI -> Business DAO Layer -> Pure JDBC -> Oracle 23ai
+
+
+2. TECHNOLOGY STACK & DEPENDENCIES
+--------------------------------------------------------------------------------
+- Database          : Oracle Database 23ai Free (Pluggable Database: FREEPDB1)
+                      * Relational schema normalized to 3NF/BCNF
+                      * PL/SQL Packages, Stored Procedures, Triggers, Views
+- Language / Runtime: Java 17+ (JDK 21 LTS Recommended)
+- Database Driver   : Oracle JDBC 23ai Driver (ojdbc11)
+- GUI Framework     : JavaFX 21 (Controls + Graphics, code-driven layout)
+- Icons & Styling   : FontAwesome 5 via Ikonli (ikonli-javafx, ikonli-fontawesome5-pack)
+- Security & Auth   : jBCrypt 0.4 (Salted password hashing with cost factor 12)
+- Logging           : SLF4J + Logback Classic
+- Build Tool        : Apache Maven
+
+
+3. DATABASE ARCHITECTURE (SCHEMA: ISP_APP)
+--------------------------------------------------------------------------------
+The relational model strictly adheres to 3NF/BCNF normalization rules.
+
+A. Core Entities and Tables:
+   1. SERVICE_AREA       : Geographic coverage zones defined by PIN codes and city.
+   2. CUSTOMER           : Subscribers (Individual or Business) with contact info,
+                           ID proofs (Aadhaar/PAN), GSTIN, and account statuses.
+   3. BROADBAND_PLAN     : Fiber/broadband packages with download/upload speeds,
+                           FUP data limits, post-FUP throttle speed, rental price.
+   4. SUBSCRIPTION       : Active link between customer and plan. Tracks MAC
+                           address, assigned IP address, and connection status.
+   5. INSTALLATION       : Technician field dispatch, scheduled dates, cable
+                           length used, router serial numbers, sign-off status.
+   6. INVOICE            : Monthly billing records detailing plan charges, 18% GST,
+                           discounts, due dates, and statuses (UNPAID, PAID, etc.).
+   7. PAYMENT            : Transaction records tracking payment method (CASH, UPI,
+                           CARD, BANK_TRANSFER, CHEQUE), timestamp, and amount.
+   8. SUPPORT_TICKET     : Customer helpdesk queue tracking fiber faults, router
+                           issues, speeds, priority escalation, and resolutions.
+   9. APP_USER           : Staff accounts with credentials and RBAC roles.
+
+B. PL/SQL Packages & Stored Procedures:
+   - Package: pkg_billing
+     * sp_generate_monthly_invoices : Generates cycle invoices for all active
+                                      subscriptions with automated 18% tax.
+     * sp_record_payment            : Validates invoice amounts, ensures no
+                                      overpayment, updates invoice balance and
+                                      status atomically, and logs the transaction.
+                                      Raises ORA-20001 to ORA-20005 on errors.
+
+C. Database Triggers:
+   - Automated sequence generators for legacy keys.
+   - Audit logging triggers tracking status transitions across customer accounts.
+   - Integrity constraints preventing modifications to closed/paid invoices.
+
+D. Analytical Database Views:
+   1. V_MONTHLY_REVENUE      : Aggregated monthly revenue and collection trends.
+   2. V_OVERDUE_INVOICES     : Unpaid invoices past due date for collections.
+   3. V_CUSTOMER_BALANCE     : Ledger of total billed vs. total paid per client.
+   4. V_TECHNICIAN_WORKLOAD  : Active and completed assignments per technician.
+   5. V_DATA_USAGE_SUMMARY   : Subscriber consumption analysis vs. FUP limits.
+   6. V_ACTIVE_SUBSCRIPTIONS : Denormalized active subscriber connection view.
+
+
+4. APPLICATION MODULES & USER INTERFACE
+--------------------------------------------------------------------------------
+The application is structured into a responsive desktop UI:
+
+- Login & RBAC Security:
+  Role-Based Access Control enforcing specific privileges for:
+  * ADMIN      : Full privileges (User management, system configurations).
+  * BILLING    : Invoicing, payment recording, ledger adjustments, reports.
+  * SUPPORT    : Customer onboarding, ticket assignment and resolutions.
+  * TECHNICIAN : Field installation updates and ticket inspection.
+
+- Dashboard:
+  Real-time KPI cards displaying total revenue, active subscriber counts,
+  open ticket queues, and overdue balances. Integrated charts for trends.
+
+- Customer Directory:
+  Real-time search and multi-parameter filtering (by status, type, query).
+  Comprehensive customer creation wizard with identity verification.
+
+- Broadband Plans Catalog:
+  Plan tier overview, speed tiers, data limits, pricing, and active states.
+
+- Subscriptions & Provisioning:
+  Lifecycle management of broadband connections, MAC address registration,
+  and hardware installation requests.
+
+- Billing & Payments:
+  Invoice viewer with status indicators, one-click payment modal with dynamic
+  outstanding calculation, receipt generator with file export (.txt receipt).
+
+- Support Tickets:
+  Full helpdesk ticketing workflow with SLA priorities and technician tagging.
+
+- Analytics & Reports:
+  6 dedicated enterprise reporting tabs powered directly by Oracle Views,
+  featuring native CSV export functionality with RFC-4180 quotation handling.
+
+
+5. PROJECT HIGHLIGHTS & ACADEMIC VALUE
+--------------------------------------------------------------------------------
+1. Pure JDBC Implementation:
+   Direct use of java.sql.PreparedStatement and CallableStatement. No heavy
+   ORMs, demonstrating full understanding of raw SQL execution, connection
+   pooling, and SQL injection prevention.
+2. In-Database Business Logic:
+   Heavy enterprise operations (tax calculations, atomic invoice-to-payment
+   reconciliation) are pushed down to Oracle PL/SQL stored procedures for ACID
+   compliance.
+3. Industry-Standard Security:
+   No plain-text credentials; implemented BCrypt salted password hashing.
+4. Clean UI/UX:
+   Built purely in JavaFX code without bulky XML templates, featuring dark-sidebar
+   modern design, micro-interactions, and fast keyboard shortcuts.
+
+================================================================================
+Generated for: DBMS Micro-Project Submission / Review
+================================================================================

@@ -65,8 +65,10 @@ public class MainLayout extends BorderPane {
         navItems.setPadding(new Insets(8, 0, 0, 0));
 
         String role = Session.getRole();
+        // Dashboard is accessible to all roles as the landing command center
+        addNav(navItems, "fas-chart-pie", "Dashboard", () -> navigate("Dashboard", "Command Center", new DashboardScreen(this)));
+
         if ("ADMIN".equals(role)) {
-            addNav(navItems, "fas-chart-pie", "Dashboard", () -> navigate("Dashboard", "System Overview", new DashboardScreen(this)));
             addNav(navItems, "fas-users", "Customers", () -> navigate("Customers", "Subscriber Directory", new CustomersScreen()));
             addNav(navItems, "fas-layer-group", "Plans Catalog", () -> navigate("Plans", "Broadband & Fiber Tiers", new PlansScreen()));
             addNav(navItems, "fas-receipt", "Subscriptions", () -> navigate("Subscriptions", "Contracts & Installations", new SubscriptionsScreen()));
@@ -84,8 +86,6 @@ public class MainLayout extends BorderPane {
         } else if ("SUPPORT_AGENT".equals(role)) {
             addNav(navItems, "fas-users", "Customers", () -> navigate("Customers", "Subscriber Accounts", new CustomersScreen()));
             addNav(navItems, "fas-headset", "Support Tickets", () -> navigate("Tickets", "Helpdesk Desk", new TicketsScreen()));
-        } else {
-            addNav(navItems, "fas-chart-pie", "Dashboard", () -> navigate("Dashboard", "System Overview", new DashboardScreen()));
         }
 
         Region vSpacer = new Region();
@@ -229,20 +229,11 @@ public class MainLayout extends BorderPane {
         statusBar.getChildren().addAll(dbStatus, statusSpacer, sessionLbl, timeLbl);
         setBottom(statusBar);
 
-        // Default screen navigation & active highlight
+        // Default screen navigation & active highlight (All roles land on Dashboard)
         if (!navButtons.isEmpty()) {
             navButtons.get(0).getStyleClass().add("sidebar-item-active");
         }
-
-        if ("ADMIN".equals(role)) {
-            navigate("Dashboard", "System Overview", new DashboardScreen(this));
-        } else if ("BILLING_CLERK".equals(role)) {
-            navigate("Billing", "Invoices & Payments", new BillingScreen());
-        } else if ("TECHNICIAN".equals(role)) {
-            navigate("Subscriptions", "Field Assignments", new SubscriptionsScreen());
-        } else if ("SUPPORT_AGENT".equals(role)) {
-            navigate("Customers", "Subscriber Directory", new CustomersScreen());
-        }
+        navigate("Dashboard", "Command Center", new DashboardScreen(this));
     }
 
     private void addNav(VBox container, String iconCode, String text, Runnable onClick) {
